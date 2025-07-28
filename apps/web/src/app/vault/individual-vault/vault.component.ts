@@ -98,6 +98,7 @@ import {
 } from "../../admin-console/organizations/shared/components/collection-dialog";
 import { SharedModule } from "../../shared/shared.module";
 import { AssignCollectionsWebComponent } from "../components/assign-collections";
+import { ShareModalComponent } from "../components/share-modal/share-modal.component";
 import {
   VaultItemDialogComponent,
   VaultItemDialogMode,
@@ -566,6 +567,9 @@ export class VaultComponent<C extends CipherViewLike> implements OnInit, OnDestr
         case "viewCollectionAccess":
           await this.editCollection(event.item, CollectionDialogTabType.Access);
           break;
+        case "share":
+          await this.shareCipher(event.item);
+          break;
         case "assignToCollections":
           await this.bulkAssignToCollections(event.items);
           break;
@@ -981,6 +985,18 @@ export class VaultComponent<C extends CipherViewLike> implements OnInit, OnDestr
     }
 
     await this.editCipher(cipher, true);
+  }
+
+  async shareCipher(cipher: CipherView | CipherListView) {
+    const dialogRef = ShareModalComponent.open(this.dialogService, {
+      data: { cipher: cipher },
+    });
+
+    const result = await firstValueFrom(dialogRef.closed);
+    if (result?.action === "shared") {
+      // Refresh the vault to show the updated cipher with new collection assignment
+      this.refresh();
+    }
   }
 
   restore = async (c: C): Promise<boolean> => {

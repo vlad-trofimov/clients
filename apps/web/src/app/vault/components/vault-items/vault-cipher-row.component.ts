@@ -132,6 +132,10 @@ export class VaultCipherRowComponent<C extends CipherViewLike> implements OnInit
     );
   }
 
+  protected get showShare() {
+    return this.organizations?.length && !CipherViewLikeUtils.isDeleted(this.cipher);
+  }
+
   protected get showClone() {
     return this.cloneable && !CipherViewLikeUtils.isDeleted(this.cipher);
   }
@@ -220,7 +224,9 @@ export class VaultCipherRowComponent<C extends CipherViewLike> implements OnInit
       this.showLaunchUri ||
       this.showAttachments ||
       this.showClone ||
-      this.canEditCipher
+      this.showShare ||
+      this.canEditCipher ||
+      (CipherViewLikeUtils.isDeleted(this.cipher) && this.canRestoreCipher)
     );
   }
 
@@ -246,6 +252,10 @@ export class VaultCipherRowComponent<C extends CipherViewLike> implements OnInit
 
   protected attachments() {
     this.onEvent.emit({ type: "viewAttachments", item: this.cipher });
+  }
+
+  protected share() {
+    this.onEvent.emit({ type: "share", item: this.cipher });
   }
 
   protected assignToCollections() {
