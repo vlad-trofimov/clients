@@ -230,7 +230,7 @@ export class ShareModalComponent implements OnInit, OnDestroy {
 
     try {
       // Assign all ciphers to the existing collection
-      await this.assignCiphersToCollection(this.existingCollection!.id!);
+      await this.assignCiphersToCollection(this.existingCollection!.id!, this.existingCollection!);
 
       // Assignment was successful
       this.createdCollectionId = this.existingCollection!.id!;
@@ -387,7 +387,7 @@ export class ShareModalComponent implements OnInit, OnDestroy {
 
       try {
         // Assign the ciphers to the newly created collection
-        await this.assignCiphersToCollection(collectionView.id);
+        await this.assignCiphersToCollection(collectionView.id, collectionView);
 
         // Store collection ID and generate shareable link
         this.createdCollectionId = collectionView.id;
@@ -624,13 +624,20 @@ export class ShareModalComponent implements OnInit, OnDestroy {
     };
   }
 
-  private async assignCiphersToCollection(collectionId: string): Promise<void> {
+  private async assignCiphersToCollection(
+    collectionId: string,
+    targetCollection?: CollectionAdminView,
+  ): Promise<void> {
     if (!this.organization) {
       throw new Error("No organization available for assignment");
     }
 
     const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
-    const targetCollection = this.existingCollections.find((c) => c.id === collectionId);
+
+    // If targetCollection is not provided, try to find it in existing collections
+    if (!targetCollection) {
+      targetCollection = this.existingCollections.find((c) => c.id === collectionId);
+    }
 
     // Convert all ciphers to CipherView and group by vault type
     const individualVaultItems: CipherView[] = [];
@@ -663,7 +670,13 @@ export class ShareModalComponent implements OnInit, OnDestroy {
     }
 
     // Process organization vault items (assign to collection)
-    if (organizationVaultItems.length > 0 && targetCollection) {
+    if (organizationVaultItems.length > 0) {
+      if (!targetCollection) {
+        throw new Error(
+          `Could not find collection ${collectionId} for organization item assignment`,
+        );
+      }
+
       for (const cipherView of organizationVaultItems) {
         await this.assignOrganizationItemToCollection(cipherView, targetCollection);
       }
