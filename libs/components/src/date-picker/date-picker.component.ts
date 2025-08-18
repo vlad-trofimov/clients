@@ -92,7 +92,7 @@ interface CalendarDay {
             ‹
           </button>
           <div
-            class="tw-text-sm tw-text-main tw-flex-1 tw-text-center tw-cursor-pointer hover:tw-text-primary-600"
+            class="tw-text-sm tw-text-main tw-flex-1 tw-text-center tw-cursor-pointer tw-px-2 tw-py-1 tw-rounded-full hover:tw-bg-primary-600 hover:tw-text-contrast tw-transition-colors"
             (click)="switchToNextView()"
           >
             {{ getHeaderTitle() }}
@@ -135,7 +135,7 @@ interface CalendarDay {
         <div *ngIf="viewMode() === 'month'" class="tw-grid tw-grid-cols-3 tw-gap-1 tw-px-2 tw-pb-2">
           <div
             *ngFor="let month of yearMonths()"
-            class="tw-flex tw-items-center tw-justify-center tw-cursor-pointer tw-w-20 tw-h-8 tw-text-sm tw-rounded tw-text-main hover:tw-bg-primary-600 hover:tw-text-contrast tw-transition-colors"
+            class="tw-flex tw-items-center tw-justify-center tw-cursor-pointer tw-w-16 tw-h-6 tw-text-sm tw-rounded-full tw-text-main hover:tw-bg-primary-600 hover:tw-text-contrast tw-transition-colors"
             (click)="selectMonth(month.value)"
           >
             {{ month.name }}
@@ -146,7 +146,7 @@ interface CalendarDay {
         <div *ngIf="viewMode() === 'year'" class="tw-grid tw-grid-cols-3 tw-gap-1 tw-px-2 tw-pb-2">
           <div
             *ngFor="let year of decadeYears()"
-            class="tw-flex tw-items-center tw-justify-center tw-cursor-pointer tw-w-20 tw-h-8 tw-text-sm tw-rounded tw-text-main hover:tw-bg-primary-600 hover:tw-text-contrast tw-transition-colors"
+            class="tw-flex tw-items-center tw-justify-center tw-cursor-pointer tw-w-12 tw-h-6 tw-text-sm tw-rounded-full tw-text-main hover:tw-bg-primary-600 hover:tw-text-contrast tw-transition-colors"
             (click)="selectYear(year)"
           >
             {{ year }}
@@ -433,7 +433,7 @@ export class BitDatePickerComponent implements BitFormFieldControl, ControlValue
 
   getDayClasses(day: CalendarDay): string {
     const baseClasses =
-      "tw-flex tw-items-center tw-justify-center tw-w-10 tw-h-8 tw-text-sm tw-rounded-full";
+      "tw-flex tw-items-center tw-justify-center tw-w-7 tw-h-7 tw-text-sm tw-rounded-full";
 
     if (!day.inCurrentMonth) {
       return `${baseClasses} tw-text-muted tw-cursor-default`;
