@@ -46,6 +46,7 @@ import { TwoFactorAuthenticationPolicyComponent } from "./two-factor-authenticat
     PoliciesComponent,
     PolicyEditComponent,
     RemoveUnlockWithPinPolicyComponent,
+    RestrictedItemTypesPolicyComponent,
   ],
 })
 export class PoliciesModule {}

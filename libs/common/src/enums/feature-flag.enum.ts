@@ -53,6 +53,7 @@ export enum FeatureFlag {
   PM22136_SdkCipherEncryption = "pm-22136-sdk-cipher-encryption",
   CipherKeyEncryption = "cipher-key-encryption",
   RemoveCardItemTypePolicy = "pm-16442-remove-card-item-type-policy",
+  ExpandRemoveItemTypesPolicy = "expand-remove-item-types-policy",
   PM19315EndUserActivationMvp = "pm-19315-end-user-activation-mvp",
 
   /* Platform */
@@ -96,6 +97,7 @@ export const DefaultFeatureFlagValue = {
   [FeatureFlag.CipherKeyEncryption]: FALSE,
   [FeatureFlag.PM19941MigrateCipherDomainToSdk]: FALSE,
   [FeatureFlag.RemoveCardItemTypePolicy]: FALSE,
+  [FeatureFlag.ExpandRemoveItemTypesPolicy]: FALSE,
   [FeatureFlag.PM22134SdkCipherListView]: FALSE,
   [FeatureFlag.PM19315EndUserActivationMvp]: FALSE,
   [FeatureFlag.PM22136_SdkCipherEncryption]: FALSE,
