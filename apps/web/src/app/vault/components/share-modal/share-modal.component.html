@@ -1,8 +1,10 @@
 <form [formGroup]="formGroup" [bitSubmit]="submit">
   <bit-dialog dialogSize="large">
     <span bitDialogTitle>
-      <ng-container *ngIf="!isBulkShare">{{ "share" | i18n }}</ng-container>
-      <ng-container *ngIf="isBulkShare"
+      <ng-container *ngIf="!isBulkShare && !sharingComplete"
+        >{{ "share" | i18n }} "{{ decryptedCipherName }}"</ng-container
+      >
+      <ng-container *ngIf="isBulkShare && !sharingComplete"
         >{{ "share" | i18n }} {{ ciphers.length }} {{ "items" | i18n }}</ng-container
       >
     </span>
@@ -14,30 +16,19 @@
 
       <!-- Step 1: Initial Share Form -->
       <div *ngIf="!loading && !showExistingCollectionStep && !sharingComplete">
-        <!-- Show item summary for bulk sharing -->
-        <div *ngIf="isBulkShare" class="tw-mb-4 tw-p-3 tw-bg-secondary-100 tw-rounded">
-          <div class="tw-font-semibold tw-mb-2">Sharing {{ ciphers.length }} items:</div>
-          <div class="tw-text-muted tw-text-sm">
-            {{ cipher.name
-            }}<span *ngIf="ciphers.length > 1">
-              and {{ ciphers.length - 1 }} other{{ ciphers.length > 2 ? "s" : "" }}</span
-            >
-          </div>
+        <!-- Description for single item sharing -->
+        <div *ngIf="!isBulkShare" class="tw-mb-4 tw-text-main">
+          Grant groups or members access to "{{ decryptedCipherName }}"
         </div>
 
-        <div class="tw-mb-4 tw-text-muted">
-          Create a name for the Collection, or leave it blank for Bitwarden to automatically create
-          a name
+        <div *ngIf="isBulkShare" class="tw-mb-4 tw-text-main">
+          Create a name for this Share and grant groups or members access to the
+          {{ ciphers.length }} items.
         </div>
-        <bit-form-field>
+        <bit-form-field *ngIf="isBulkShare">
           <bit-label>{{ "name" | i18n }}</bit-label>
-          <input bitInput appAutofocus formControlName="collectionName" />
-          <bit-hint>{{ "optional" | i18n }}</bit-hint>
+          <input bitInput appAutofocus formControlName="collectionName" required />
         </bit-form-field>
-
-        <div class="tw-mb-3">
-          <span>{{ "grantCollectionAccess" | i18n }}</span>
-        </div>
 
         <bit-access-selector
           *ngIf="organization?.useGroups"
@@ -75,10 +66,7 @@
       <div *ngIf="!loading && sharingComplete">
         <div class="tw-mb-4">
           <h3 class="tw-text-lg tw-font-semibold tw-mb-2">
-            <ng-container *ngIf="!isBulkShare">Item shared successfully!</ng-container>
-            <ng-container *ngIf="isBulkShare"
-              >{{ ciphers.length }} items shared successfully!</ng-container
-            >
+            Shared {{ createdCollectionName }} successfully!
           </h3>
         </div>
 

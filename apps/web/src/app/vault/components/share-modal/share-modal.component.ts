@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit, OnDestroy, ChangeDetectorRef } from "@angular/core";
-import { FormBuilder } from "@angular/forms";
+import { FormBuilder, Validators } from "@angular/forms";
 import { firstValueFrom, Subject, map } from "rxjs";
 
 import {
@@ -13,6 +13,8 @@ import { Organization } from "@bitwarden/common/admin-console/models/domain/orga
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { Utils } from "@bitwarden/common/platform/misc/utils";
+import { CollectionId, OrganizationId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import { CipherViewLike } from "@bitwarden/common/vault/utils/cipher-view-like-utils";
@@ -72,6 +74,8 @@ export class ShareModalComponent implements OnInit, OnDestroy {
   shareableLink = "";
   sharingComplete = false;
   createdCollectionId = "";
+  createdCollectionName = "";
+  decryptedCipherName = "";
   showExistingCollectionStep = false;
   existingCollection?: CollectionAdminView;
 
@@ -117,10 +121,48 @@ export class ShareModalComponent implements OnInit, OnDestroy {
       this.dialogRef.close({ action: "canceled" });
       return;
     }
+
+    // Set up form validation based on sharing mode
+    this.setupFormValidation();
+  }
+
+  private setupFormValidation() {
+    if (this.isBulkShare) {
+      // For bulk sharing, collection name is required
+      this.formGroup.get("collectionName")?.setValidators([Validators.required]);
+    } else {
+      // For single item sharing, collection name is optional
+      this.formGroup.get("collectionName")?.clearValidators();
+    }
+    this.formGroup.get("collectionName")?.updateValueAndValidity();
   }
 
   async ngOnInit() {
+    await this.decryptCipherName();
     await this.loadData();
+  }
+
+  private async decryptCipherName() {
+    if (!this.isBulkShare && this.cipher) {
+      // For single item sharing, ensure we have the decrypted name for display
+      if ("id" in this.cipher && this.cipher.id) {
+        try {
+          const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
+          const fullCipher = await this.cipherService.get(this.cipher.id, userId);
+          if (fullCipher) {
+            const decryptedCipher = await this.cipherService.decrypt(fullCipher, userId);
+            this.decryptedCipherName = decryptedCipher.name;
+          } else {
+            this.decryptedCipherName = "Unknown Item";
+          }
+        } catch {
+          this.decryptedCipherName = "Unknown Item";
+        }
+      } else {
+        // Should already be decrypted
+        this.decryptedCipherName = this.cipher.name || "Unknown Item";
+      }
+    }
   }
 
   ngOnDestroy() {
@@ -161,7 +203,9 @@ export class ShareModalComponent implements OnInit, OnDestroy {
       const usersPromise = this.organizationUserApiService.getAllMiniUserDetails(
         this.organization.id,
       );
-      const collectionsPromise = this.collectionAdminService.getAll(this.organization.id);
+      const collectionsPromise = firstValueFrom(
+        this.collectionAdminService.collectionAdminViews$(this.organization.id, userId),
+      );
 
       const [groups, users, collections] = await Promise.all([
         groupsPromise,
@@ -174,12 +218,16 @@ export class ShareModalComponent implements OnInit, OnDestroy {
 
       // Create access items (groups and users available for selection)
       this.accessItems = [
-        ...groups.map((group) => this.mapGroupToAccessItemView(group)),
-        ...users.data.map((user) => this.mapUserToAccessItemView(user)),
+        ...groups.map((group: GroupView) => this.mapGroupToAccessItemView(group)),
+        ...users.data.map((user: OrganizationUserUserMiniResponse) =>
+          this.mapUserToAccessItemView(user),
+        ),
       ];
 
       // Get current user and add them with "Can Manage" permission by default
-      this.currentUser = users.data.find((u) => u.userId === userId);
+      this.currentUser = users.data.find(
+        (u: OrganizationUserUserMiniResponse) => u.userId === userId,
+      );
       if (this.currentUser) {
         const currentUserAccessItem: AccessItemValue = {
           id: this.currentUser.id,
@@ -210,7 +258,15 @@ export class ShareModalComponent implements OnInit, OnDestroy {
 
     const accessValue = this.formGroup.get("access")?.value || [];
     // Must have at least one other user/group besides the current user
-    return accessValue.length > 1;
+    const hasValidAccess = accessValue.length > 1;
+
+    // For bulk sharing, also check that collection name is provided
+    if (this.isBulkShare) {
+      const collectionName = this.formGroup.get("collectionName")?.value;
+      return hasValidAccess && collectionName && collectionName.trim().length > 0;
+    }
+
+    return hasValidAccess;
   }
 
   cancel() {
@@ -234,6 +290,10 @@ export class ShareModalComponent implements OnInit, OnDestroy {
 
       // Assignment was successful
       this.createdCollectionId = this.existingCollection!.id!;
+      // Set display name based on sharing mode
+      this.createdCollectionName = this.isBulkShare
+        ? this.formGroup.get("collectionName")?.value?.trim() || "Unknown Collection"
+        : this.decryptedCipherName;
       this.generateShareableLink();
       this.sharingComplete = true;
 
@@ -372,7 +432,7 @@ export class ShareModalComponent implements OnInit, OnDestroy {
     }
 
     // Check if a collection with the same permissions already exists
-    const duplicateCollection = this.findCollectionWithSamePermissions();
+    const duplicateCollection = await this.findCollectionWithSamePermissions();
     if (duplicateCollection) {
       // Transition to existing collection assignment step - DO NOT CREATE NEW COLLECTION
       this.existingCollection = duplicateCollection;
@@ -391,6 +451,10 @@ export class ShareModalComponent implements OnInit, OnDestroy {
 
         // Store collection ID and generate shareable link
         this.createdCollectionId = collectionView.id;
+        // Set display name based on sharing mode
+        this.createdCollectionName = this.isBulkShare
+          ? this.formGroup.get("collectionName")?.value?.trim() || "Unknown Collection"
+          : this.decryptedCipherName;
         this.generateShareableLink();
         this.sharingComplete = true;
 
@@ -405,6 +469,10 @@ export class ShareModalComponent implements OnInit, OnDestroy {
 
         // Collection was created but assignment failed - still show shareable link
         this.createdCollectionId = collectionView.id;
+        // Set display name based on sharing mode
+        this.createdCollectionName = this.isBulkShare
+          ? this.formGroup.get("collectionName")?.value?.trim() || "Unknown Collection"
+          : this.decryptedCipherName;
         this.generateShareableLink();
         this.sharingComplete = true;
 
@@ -435,15 +503,25 @@ export class ShareModalComponent implements OnInit, OnDestroy {
     }
 
     // Build the collection object
-    const collectionView = new CollectionAdminView();
-    collectionView.organizationId = this.organization.id;
+    const collectionView = new CollectionAdminView({
+      id: Utils.newGuid() as CollectionId,
+      organizationId: this.organization.id as OrganizationId,
+      name: "",
+    });
+    // organizationId is set in constructor
 
-    // Generate collection name if empty, otherwise use provided name
+    // Set collection name based on sharing mode
     const providedName = this.formGroup.get("collectionName")?.value;
-    if (!providedName || providedName.trim() === "") {
-      collectionView.name = this.generateCollectionName();
+    if (this.isBulkShare) {
+      // Bulk sharing always uses the provided name (which is required)
+      collectionView.name = providedName.trim();
     } else {
-      collectionView.name = providedName;
+      // Single item sharing: use cipher name if no name provided, otherwise use provided name
+      if (!providedName || providedName.trim() === "") {
+        collectionView.name = this.decryptedCipherName || "Shared Item";
+      } else {
+        collectionView.name = providedName.trim();
+      }
     }
 
     // Set up user permissions
@@ -461,17 +539,23 @@ export class ShareModalComponent implements OnInit, OnDestroy {
     const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
 
     // Create the collection via API
-    const savedCollection = await this.collectionAdminService.save(collectionView, userId);
+    const savedCollection = await this.collectionAdminService.create(collectionView, userId);
 
     return savedCollection;
   }
 
-  private findCollectionWithSamePermissions(): CollectionAdminView | null {
+  private async findCollectionWithSamePermissions(): Promise<CollectionAdminView | null> {
     const currentPermissions = this.getCurrentPermissionSet();
 
     for (const collection of this.existingCollections) {
       // Only consider collections where the current user has sharing permissions (Can Manage or Can Edit)
       if (!this.canUserShareInCollection(collection)) {
+        continue;
+      }
+
+      // Only consider collections that have more than one item as potential duplicates
+      const itemCount = await this.getCollectionItemCount(collection.id!);
+      if (itemCount <= 1) {
         continue;
       }
 
@@ -483,6 +567,22 @@ export class ShareModalComponent implements OnInit, OnDestroy {
     }
 
     return null;
+  }
+
+  private async getCollectionItemCount(collectionId: string): Promise<number> {
+    try {
+      const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
+      // Get all ciphers and filter by collection ID
+      const allCiphersRecord = await firstValueFrom(this.cipherService.ciphers$(userId));
+      const allCiphersArray = Object.values(allCiphersRecord);
+      const collectionCiphers = allCiphersArray.filter(
+        (cipher: any) => cipher.collectionIds && cipher.collectionIds.includes(collectionId),
+      );
+      return collectionCiphers.length;
+    } catch {
+      // If we can't determine the count, assume it has multiple items to be safe
+      return 2;
+    }
   }
 
   private canUserShareInCollection(collection: CollectionAdminView): boolean {

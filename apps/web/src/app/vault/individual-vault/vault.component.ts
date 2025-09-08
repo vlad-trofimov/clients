@@ -993,6 +993,7 @@ export class VaultComponent<C extends CipherViewLike> implements OnInit, OnDestr
   async shareCipher(cipher: CipherView | CipherListView) {
     const dialogRef = ShareModalComponent.open(this.dialogService, {
       data: { cipher: cipher },
+      disableClose: true,
     });
 
     const result = await firstValueFrom(dialogRef.closed);
@@ -1014,6 +1015,7 @@ export class VaultComponent<C extends CipherViewLike> implements OnInit, OnDestr
 
     const dialogRef = ShareModalComponent.open(this.dialogService, {
       data: { ciphers: ciphers },
+      disableClose: true,
     });
 
     const result = await firstValueFrom(dialogRef.closed);
