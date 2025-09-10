@@ -31,6 +31,14 @@
     </bit-form-field>
   </ng-container>
 
+  <!-- Collection filter for organization exports -->
+  <bit-form-field *ngIf="showCollectionFilter">
+    <bit-label>{{ "collections" | i18n }} (optional)</bit-label>
+    <bit-multi-select formControlName="selectedCollections" [baseItems]="availableCollections">
+    </bit-multi-select>
+    <bit-hint>{{ "selectCollectionsToExport" | i18n }}</bit-hint>
+  </bit-form-field>
+
   <bit-form-field>
     <bit-label>{{ "fileFormat" | i18n }}</bit-label>
     <bit-select formControlName="format">

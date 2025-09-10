@@ -14,6 +14,7 @@ import {
 import { ReactiveFormsModule, UntypedFormBuilder, Validators } from "@angular/forms";
 import {
   combineLatest,
+  firstValueFrom,
   map,
   merge,
   Observable,
@@ -24,7 +25,7 @@ import {
   tap,
 } from "rxjs";
 
-import { CollectionService } from "@bitwarden/admin-console/common";
+import { CollectionService, CollectionAdminService } from "@bitwarden/admin-console/common";
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { PasswordStrengthV2Component } from "@bitwarden/angular/tools/password-strength/password-strength-v2.component";
 import { UserVerificationDialogComponent } from "@bitwarden/auth/angular";
@@ -44,6 +45,7 @@ import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.servic
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { pin } from "@bitwarden/common/tools/rx";
+import { CollectionId } from "@bitwarden/common/types/guid";
 import {
   AsyncActionsModule,
   BitSubmitDirective,
@@ -52,8 +54,10 @@ import {
   DialogService,
   FormFieldModule,
   IconButtonModule,
+  MultiSelectModule,
   RadioButtonModule,
   SelectModule,
+  SelectItemView,
   ToastService,
 } from "@bitwarden/components";
 import { GeneratorServicesModule } from "@bitwarden/generator-components";
@@ -76,6 +80,7 @@ import { ExportScopeCalloutComponent } from "./export-scope-callout.component";
     ButtonModule,
     IconButtonModule,
     SelectModule,
+    MultiSelectModule,
     CalloutModule,
     RadioButtonModule,
     ExportScopeCalloutComponent,
@@ -107,6 +112,7 @@ export class ExportComponent implements OnInit, OnDestroy, AfterViewInit {
       .pipe(takeUntil(this.destroy$))
       .subscribe((organization) => {
         this._organizationId = organization?.id;
+        this.showCollectionFilter = !!this._organizationId;
       });
   }
 
@@ -147,6 +153,8 @@ export class ExportComponent implements OnInit, OnDestroy, AfterViewInit {
   private _disabledByPolicy = false;
 
   organizations$: Observable<Organization[]>;
+  protected showCollectionFilter = false;
+  protected availableCollections: SelectItemView[] = [];
 
   protected get disabledByPolicy(): boolean {
     return this._disabledByPolicy;
@@ -168,6 +176,7 @@ export class ExportComponent implements OnInit, OnDestroy, AfterViewInit {
     filePassword: ["", Validators.required],
     confirmFilePassword: ["", Validators.required],
     fileEncryptionType: [EncryptedExportType.AccountEncrypted],
+    selectedCollections: [<SelectItemView[]>[]],
   });
 
   formatOptions = [
@@ -194,6 +203,7 @@ export class ExportComponent implements OnInit, OnDestroy, AfterViewInit {
     protected organizationService: OrganizationService,
     private accountService: AccountService,
     private collectionService: CollectionService,
+    private collectionAdminService: CollectionAdminService,
   ) {}
 
   async ngOnInit() {
@@ -220,6 +230,10 @@ export class ExportComponent implements OnInit, OnDestroy, AfterViewInit {
       .pipe(takeUntil(this.destroy$))
       .subscribe((value) => {
         this.organizationId = value !== "myVault" ? value : undefined;
+        this.showCollectionFilter = value !== "myVault" && value !== undefined;
+
+        // Reset selected collections when changing vault
+        this.exportForm.get("selectedCollections").setValue([]);
 
         this.formatOptions = this.formatOptions.filter((option) => option.value !== "zip");
         this.exportForm.get("format").setValue("json");
@@ -257,6 +271,8 @@ export class ExportComponent implements OnInit, OnDestroy, AfterViewInit {
       });
 
     if (this.organizationId) {
+      this.showCollectionFilter = true; // Enable collection filter for org exports
+
       this.organizations$ = this.accountService.activeAccount$.pipe(
         getUserId,
         switchMap((userId) =>
@@ -269,6 +285,9 @@ export class ExportComponent implements OnInit, OnDestroy, AfterViewInit {
       this.exportForm.controls.vaultSelector.disable();
 
       this.onlyManagedCollections = false;
+
+      // Load collections directly
+      void this.loadCollectionsForOrganization(this.organizationId);
       return;
     }
 
@@ -452,14 +471,55 @@ export class ExportComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   protected async getExportData(): Promise<ExportedVault> {
+    const selectedCollections =
+      (this.exportForm.get("selectedCollections")?.value as SelectItemView[]) || [];
+    const selectedCollectionIds = selectedCollections.map((c) => c.id as CollectionId);
+
     return Utils.isNullOrWhitespace(this.organizationId)
       ? this.exportService.getExport(this.format, this.filePassword)
       : this.exportService.getOrganizationExport(
           this.organizationId,
           this.format,
           this.filePassword,
-          this.onlyManagedCollections,
+          selectedCollectionIds.length > 0 ? true : this.onlyManagedCollections, // Force managed collections when filtering
+          selectedCollectionIds.length > 0 ? selectedCollectionIds : undefined,
         );
+  }
+
+  private async loadCollectionsForOrganization(organizationId: string): Promise<void> {
+    try {
+      const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
+      const [collections, organization] = await Promise.all([
+        firstValueFrom(this.collectionAdminService.collectionAdminViews$(organizationId, userId)),
+        firstValueFrom(
+          this.organizationService.organizations$(userId).pipe(getOrganizationById(organizationId)),
+        ),
+      ]);
+
+      if (collections && collections.length > 0 && organization) {
+        // Filter collections to only show those where the user has access to items
+        const collectionsWithItemAccess = collections.filter((collection) =>
+          collection.canEditItems(organization),
+        );
+
+        this.availableCollections = collectionsWithItemAccess
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map(
+            (c) =>
+              ({
+                icon: "bwi-collection",
+                id: c.id,
+                labelName: c.name,
+                listName: c.name,
+              }) as SelectItemView,
+          );
+      } else {
+        this.availableCollections = [];
+      }
+    } catch (error) {
+      this.logService.error("Error loading collections for export:", error);
+      this.availableCollections = [];
+    }
   }
 
   protected async collectEvent(): Promise<void> {

@@ -1652,6 +1652,9 @@
   "exportFrom": {
     "message": "Export from"
   },
+  "selectCollectionsToExport": {
+    "message": "Select collections to filter the export to specific collections"
+  },
   "exportVault": {
     "message": "Export vault"
   },

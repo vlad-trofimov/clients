@@ -1,3 +1,5 @@
+import { CollectionId } from "@bitwarden/common/types/guid";
+
 import { ExportedVault } from "../types";
 
 export const EXPORT_FORMATS = ["csv", "json", "encrypted_json", "zip"] as const;
@@ -10,5 +12,6 @@ export abstract class VaultExportServiceAbstraction {
     format: ExportFormat,
     password: string,
     onlyManagedCollections?: boolean,
+    selectedCollectionIds?: CollectionId[],
   ) => Promise<ExportedVault>;
 }

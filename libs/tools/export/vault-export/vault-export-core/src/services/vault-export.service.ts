@@ -1,4 +1,5 @@
 import { Utils } from "@bitwarden/common/platform/misc/utils";
+import { CollectionId } from "@bitwarden/common/types/guid";
 
 import { ExportedVault } from "../types";
 
@@ -34,6 +35,7 @@ export class VaultExportService implements VaultExportServiceAbstraction {
    * @param format The format of the export
    * @param password The password to protect the export
    * @param onlyManagedCollections If true only managed collections will be exported
+   * @param selectedCollectionIds If provided, only export ciphers from these specific collections
    * @returns The exported vault
    * @throws Error if the format is csv and a password is provided
    * @throws Error if the format is zip and the environment does not support exporting attachments
@@ -46,6 +48,7 @@ export class VaultExportService implements VaultExportServiceAbstraction {
     format: ExportFormat,
     password: string,
     onlyManagedCollections = false,
+    selectedCollectionIds?: CollectionId[],
   ): Promise<ExportedVault> {
     if (!Utils.isNullOrWhitespace(password)) {
       if (format == "csv") {
@@ -56,6 +59,7 @@ export class VaultExportService implements VaultExportServiceAbstraction {
         organizationId,
         password,
         onlyManagedCollections,
+        selectedCollectionIds,
       );
     }
 
@@ -63,6 +67,7 @@ export class VaultExportService implements VaultExportServiceAbstraction {
       organizationId,
       format,
       onlyManagedCollections,
+      selectedCollectionIds,
     );
   }
 }
