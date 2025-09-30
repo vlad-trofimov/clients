@@ -756,17 +756,21 @@ export class ShareModalComponent implements OnInit, OnDestroy {
       }
     }
 
+    // Process all items in parallel for better performance
+    const allPromises: Promise<void>[] = [];
+
     // Process individual vault items (share to organization)
     for (const cipherView of individualVaultItems) {
-      await this.shareToOrganizationAndAssign(cipherView, [collectionId]);
+      allPromises.push(this.shareToOrganizationAndAssign(cipherView, [collectionId]));
     }
 
     // Process organization vault items (assign to collection)
-    if (organizationVaultItems.length > 0) {
-      for (const cipherView of organizationVaultItems) {
-        await this.addCipherToCollection(cipherView, collectionId);
-      }
+    for (const cipherView of organizationVaultItems) {
+      allPromises.push(this.addCipherToCollection(cipherView, collectionId));
     }
+
+    // Wait for all assignments to complete
+    await Promise.all(allPromises);
   }
 
   private async addCipherToCollection(cipherView: CipherView, collectionId: string): Promise<void> {
