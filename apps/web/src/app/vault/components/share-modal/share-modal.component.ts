@@ -148,7 +148,7 @@ export class ShareModalComponent implements OnInit, OnDestroy {
       if ("id" in this.cipher && this.cipher.id) {
         try {
           const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
-          const fullCipher = await this.cipherService.get(this.cipher.id, userId);
+          const fullCipher = await this.cipherService.get(this.cipher.id as string, userId);
           if (fullCipher) {
             const decryptedCipher = await this.cipherService.decrypt(fullCipher, userId);
             this.decryptedCipherName = decryptedCipher.name;
@@ -740,7 +740,7 @@ export class ShareModalComponent implements OnInit, OnDestroy {
       let cipherView: CipherView;
       if ("id" in cipher) {
         // Convert CipherListView to CipherView
-        const cipherDomain = await this.cipherService.get(cipher.id!, userId);
+        const cipherDomain = await this.cipherService.get(cipher.id! as string, userId);
         if (!cipherDomain) {
           throw new Error(`Could not fetch cipher ${cipher.id} for assignment`);
         }

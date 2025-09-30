@@ -64,7 +64,7 @@
 <td bitCell [ngClass]="RowHeightClass" *ngIf="showCollections">
   <app-collection-badge
     *ngIf="cipher.collectionIds"
-    [collectionIds]="cipher.collectionIds"
+    [collectionIds]="$any(cipher.collectionIds)"
     [collections]="collections"
   ></app-collection-badge>
 </td>
