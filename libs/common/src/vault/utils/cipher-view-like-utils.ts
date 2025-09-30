@@ -74,7 +74,7 @@ export class CipherViewLikeUtils {
   /**  @returns `true` when the cipher has been archived, `false` otherwise. */
   static isArchived = (cipher: CipherViewLike): boolean => {
     if (this.isCipherListView(cipher)) {
-      return !!cipher.archivedDate;
+      return !!(cipher as any).archivedDate;
     }
 
     return cipher.isArchived;

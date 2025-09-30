@@ -374,7 +374,6 @@ export class Cipher extends Domain implements Decryptable<CipherView> {
       revisionDate: this.revisionDate?.toISOString(),
       creationDate: this.creationDate?.toISOString(),
       deletedDate: this.deletedDate?.toISOString(),
-      archivedDate: this.archivedDate?.toISOString(),
       reprompt: this.reprompt,
       // Initialize all cipher-type-specific properties as undefined
       login: undefined,
@@ -382,7 +381,12 @@ export class Cipher extends Domain implements Decryptable<CipherView> {
       card: undefined,
       secureNote: undefined,
       sshKey: undefined,
-    };
+    } as any;
+
+    // Add archivedDate if present (not yet in SDK type definition)
+    if (this.archivedDate) {
+      (sdkCipher as any).archivedDate = this.archivedDate.toISOString();
+    }
 
     switch (this.type) {
       case CipherType.Login:
@@ -441,7 +445,9 @@ export class Cipher extends Domain implements Decryptable<CipherView> {
     cipher.creationDate = new Date(sdkCipher.creationDate);
     cipher.revisionDate = new Date(sdkCipher.revisionDate);
     cipher.deletedDate = sdkCipher.deletedDate ? new Date(sdkCipher.deletedDate) : undefined;
-    cipher.archivedDate = sdkCipher.archivedDate ? new Date(sdkCipher.archivedDate) : undefined;
+    cipher.archivedDate = (sdkCipher as any).archivedDate
+      ? new Date((sdkCipher as any).archivedDate)
+      : undefined;
     cipher.reprompt = sdkCipher.reprompt;
 
     // Cipher type specific properties

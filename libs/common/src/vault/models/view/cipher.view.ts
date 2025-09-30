@@ -285,7 +285,8 @@ export class CipherView implements View, InitializerMetadata {
     cipherView.revisionDate = obj.revisionDate == null ? null : new Date(obj.revisionDate);
     cipherView.creationDate = obj.creationDate == null ? null : new Date(obj.creationDate);
     cipherView.deletedDate = obj.deletedDate == null ? null : new Date(obj.deletedDate);
-    cipherView.archivedDate = obj.archivedDate == null ? null : new Date(obj.archivedDate);
+    cipherView.archivedDate =
+      (obj as any).archivedDate == null ? null : new Date((obj as any).archivedDate);
     cipherView.reprompt = obj.reprompt ?? CipherRepromptType.None;
     cipherView.key = EncString.fromJSON(obj.key);
 
@@ -339,7 +340,6 @@ export class CipherView implements View, InitializerMetadata {
       revisionDate: (this.revisionDate ?? new Date()).toISOString(),
       creationDate: (this.creationDate ?? new Date()).toISOString(),
       deletedDate: this.deletedDate?.toISOString(),
-      archivedDate: this.archivedDate?.toISOString(),
       reprompt: this.reprompt ?? CipherRepromptType.None,
       key: this.key?.toSdk(),
       // Cipher type specific properties are set in the switch statement below
@@ -350,7 +350,12 @@ export class CipherView implements View, InitializerMetadata {
       identity: undefined,
       secureNote: undefined,
       sshKey: undefined,
-    };
+    } as any;
+
+    // Add archivedDate if present (not yet in SDK type definition)
+    if (this.archivedDate) {
+      (sdkCipherView as any).archivedDate = this.archivedDate.toISOString();
+    }
 
     switch (this.type) {
       case CipherType.Card:
