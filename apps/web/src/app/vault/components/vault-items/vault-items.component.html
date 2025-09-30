@@ -63,6 +63,10 @@
               <i class="bwi bwi-fw bwi-folder" aria-hidden="true"></i>
               {{ "addToFolder" | i18n }}
             </button>
+            <button *ngIf="bulkShareAllowed" type="button" bitMenuItem (click)="bulkShare()">
+              <i class="bwi bwi-fw bwi-share" aria-hidden="true"></i>
+              {{ "share" | i18n }}
+            </button>
             <button
               *ngIf="showAdminActions && showBulkEditCollectionAccess"
               type="button"

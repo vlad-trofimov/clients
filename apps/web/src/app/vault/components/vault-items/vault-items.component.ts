@@ -190,6 +190,17 @@ export class VaultItemsComponent<C extends CipherViewLike> {
     );
   }
 
+  get bulkShareAllowed() {
+    // Only allow bulk sharing for cipher items (not collections)
+    // Don't allow in organization vault (admin console)
+    return (
+      !this.showAdminActions &&
+      this.selection.selected.length > 0 &&
+      this.selection.selected.every((item) => item.cipher && !item.collection) &&
+      this.allOrganizations?.length > 0
+    );
+  }
+
   //@TODO: remove this function when removing the limitItemDeletion$ feature flag.
   get showDelete(): boolean {
     if (this.selection.selected.length === 0) {
@@ -263,6 +274,15 @@ export class VaultItemsComponent<C extends CipherViewLike> {
   protected bulkMoveToFolder() {
     this.event({
       type: "moveToFolder",
+      items: this.selection.selected
+        .filter((item) => item.cipher !== undefined)
+        .map((item) => item.cipher),
+    });
+  }
+
+  protected bulkShare() {
+    this.event({
+      type: "bulkShare",
       items: this.selection.selected
         .filter((item) => item.cipher !== undefined)
         .map((item) => item.cipher),
