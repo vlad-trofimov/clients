@@ -730,7 +730,6 @@ export class ShareModalComponent implements OnInit, OnDestroy {
     }
 
     const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
-    const targetCollection = this.existingCollections.find((c) => c.id === collectionId);
 
     // Convert all ciphers to CipherView and group by vault type
     const individualVaultItems: CipherView[] = [];
@@ -763,10 +762,32 @@ export class ShareModalComponent implements OnInit, OnDestroy {
     }
 
     // Process organization vault items (assign to collection)
-    if (organizationVaultItems.length > 0 && targetCollection) {
+    if (organizationVaultItems.length > 0) {
       for (const cipherView of organizationVaultItems) {
-        await this.assignOrganizationItemToCollection(cipherView, targetCollection);
+        await this.addCipherToCollection(cipherView, collectionId);
       }
+    }
+  }
+
+  private async addCipherToCollection(cipherView: CipherView, collectionId: string): Promise<void> {
+    const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
+
+    // Add the collection ID to the cipher's existing collections (if not already present)
+    const existingCollectionIds = cipherView.collectionIds || [];
+    if (!existingCollectionIds.includes(collectionId)) {
+      const updatedCollectionIds: string[] = [...existingCollectionIds, collectionId];
+
+      // Create cipher domain object with updated collection assignments
+      const cipher = await this.cipherService.get(cipherView.id!, userId);
+      if (!cipher) {
+        throw new Error("Could not fetch cipher for collection assignment");
+      }
+
+      // Update collection assignments
+      cipher.collectionIds = updatedCollectionIds;
+
+      // Use saveCollectionsWithServer to update the cipher's collection assignments
+      await this.cipherService.saveCollectionsWithServer(cipher, userId);
     }
   }
 
