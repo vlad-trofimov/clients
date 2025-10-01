@@ -1,193 +1,226 @@
 <form [formGroup]="formGroup" [bitSubmit]="submit">
   <bit-dialog dialogSize="large">
     <span bitDialogTitle>
-      <ng-container *ngIf="!isBulkShare && !sharingComplete"
-        >{{ "share" | i18n }} "{{ decryptedCipherName }}"</ng-container
-      >
-      <ng-container *ngIf="isBulkShare && !sharingComplete"
-        >{{ "share" | i18n }} {{ ciphers.length }} {{ "items" | i18n }}</ng-container
-      >
+      @if (!isBulkShare && !sharingComplete) {
+        {{ "share" | i18n }} "{{ decryptedCipherName }}"
+      }
+      @if (isBulkShare && !sharingComplete) {
+        {{ "share" | i18n }} {{ ciphers.length }} {{ "items" | i18n }}
+      }
     </span>
     <div bitDialogContent>
       <!-- Loading State -->
-      <ng-container *ngIf="loading" #spinner>
+      @if (loading) {
         <i class="bwi bwi-spinner bwi-lg bwi-spin" aria-hidden="true"></i>
-      </ng-container>
+      }
 
       <!-- Step 1: Initial Share Form -->
-      <div *ngIf="!loading && !showExistingCollectionStep && !sharingComplete">
-        <!-- Description for single item sharing -->
-        <div *ngIf="!isBulkShare" class="tw-mb-4 tw-text-main">
-          Grant groups or members access to "{{ decryptedCipherName }}"
-        </div>
+      @if (!loading && !showExistingCollectionStep && !sharingComplete) {
+        <div>
+          <!-- Description for single item sharing -->
+          @if (!isBulkShare) {
+            <div class="tw-mb-4 tw-text-main">
+              Grant groups or members access to "{{ decryptedCipherName }}"
+            </div>
+          }
 
-        <div *ngIf="isBulkShare" class="tw-mb-4 tw-text-main">
-          Create a name for this Share and grant groups or members access to the
-          {{ ciphers.length }} items.
-        </div>
-        <bit-form-field>
-          <bit-label>Collection name (required)</bit-label>
-          <input
-            bitInput
-            [appAutofocus]="isBulkShare"
-            formControlName="collectionName"
-            [required]="isBulkShare"
-          />
-        </bit-form-field>
+          @if (isBulkShare) {
+            <div class="tw-mb-4 tw-text-main">
+              Create a name for this Share and grant groups or members access to the
+              {{ ciphers.length }} items.
+            </div>
+          }
+          <bit-form-field>
+            <bit-label>Collection name (required)</bit-label>
+            <input
+              id="share-modal_input_collection-name"
+              bitInput
+              [appAutofocus]="isBulkShare"
+              formControlName="collectionName"
+              [required]="isBulkShare"
+            />
+          </bit-form-field>
 
-        <bit-access-selector
-          *ngIf="organization?.useGroups"
-          [permissionMode]="PermissionMode.Edit"
-          formControlName="access"
-          [items]="accessItems"
-          [columnHeader]="'groupSlashMemberColumnHeader' | i18n"
-          [selectorLabelText]="'selectGroupsAndMembers' | i18n"
-          [selectorHelpText]="'userPermissionOverrideHelperDesc' | i18n"
-          [emptySelectionText]="'noMembersOrGroupsAdded' | i18n"
-        ></bit-access-selector>
-        <bit-access-selector
-          *ngIf="!organization?.useGroups"
-          [permissionMode]="PermissionMode.Edit"
-          formControlName="access"
-          [items]="accessItems"
-          [columnHeader]="'memberColumnHeader' | i18n"
-          [selectorLabelText]="'selectMembers' | i18n"
-          [emptySelectionText]="'noMembersAdded' | i18n"
-        ></bit-access-selector>
-      </div>
+          @if (organization?.useGroups) {
+            <bit-access-selector
+              [permissionMode]="PermissionMode.Edit"
+              formControlName="access"
+              [items]="accessItems"
+              [columnHeader]="'groupSlashMemberColumnHeader' | i18n"
+              [selectorLabelText]="'selectGroupsAndMembers' | i18n"
+              [selectorHelpText]="'userPermissionOverrideHelperDesc' | i18n"
+              [emptySelectionText]="'noMembersOrGroupsAdded' | i18n"
+            ></bit-access-selector>
+          }
+          @if (!organization?.useGroups) {
+            <bit-access-selector
+              [permissionMode]="PermissionMode.Edit"
+              formControlName="access"
+              [items]="accessItems"
+              [columnHeader]="'memberColumnHeader' | i18n"
+              [selectorLabelText]="'selectMembers' | i18n"
+              [emptySelectionText]="'noMembersAdded' | i18n"
+            ></bit-access-selector>
+          }
+        </div>
+      }
 
       <!-- Step 2: Existing Collection Assignment -->
-      <div *ngIf="!loading && showExistingCollectionStep && !sharingComplete">
-        <div class="tw-mb-4">
-          <h3 class="tw-text-lg tw-font-semibold tw-mb-2">Existing collection found</h3>
-          <p class="tw-text-muted tw-mb-4">
-            <strong>{{ existingCollection?.name }}</strong> already exists with the same
-            permissions.
-          </p>
+      @if (!loading && showExistingCollectionStep && !sharingComplete) {
+        <div>
+          <div class="tw-mb-4">
+            <h3 class="tw-text-lg tw-font-semibold tw-mb-2">Existing collection found</h3>
+            <p class="tw-text-muted tw-mb-4">
+              <strong>{{ existingCollection?.name }}</strong> already exists with the same
+              permissions.
+            </p>
 
-          <!-- Permission Preview -->
-          <div class="tw-border tw-border-secondary-300 tw-rounded tw-p-4 tw-bg-background-alt">
-            <h4 class="tw-font-semibold tw-mb-3 tw-flex tw-items-center tw-gap-2">
-              <i class="bwi bwi-collection" aria-hidden="true"></i>
-              <span>{{ existingCollection?.name }}</span>
-            </h4>
+            <!-- Permission Preview -->
+            <div class="tw-border tw-border-secondary-300 tw-rounded tw-p-4 tw-bg-background-alt">
+              <h4 class="tw-font-semibold tw-mb-3 tw-flex tw-items-center tw-gap-2">
+                <i class="bwi bwi-collection" aria-hidden="true"></i>
+                <span>{{ existingCollection?.name }}</span>
+              </h4>
 
-            <!-- User Permissions -->
-            <div
-              *ngIf="existingCollection?.users && existingCollection.users.length > 0"
-              class="tw-mb-3"
-            >
-              <div class="tw-text-sm tw-font-semibold tw-text-muted tw-mb-2">Members:</div>
-              <div *ngFor="let user of existingCollection.users" class="tw-text-sm tw-ml-2 tw-mb-1">
-                <span class="tw-font-medium">{{ getUserDisplayName(user.id) }}</span>
-                <span class="tw-text-muted"> - {{ getPermissionLabel(user) }}</span>
-              </div>
-            </div>
+              <!-- User Permissions -->
+              @if (existingCollection?.users && existingCollection.users.length > 0) {
+                <div class="tw-mb-3">
+                  <div class="tw-text-sm tw-font-semibold tw-text-muted tw-mb-2">Members:</div>
+                  @for (user of existingCollection.users; track user.id) {
+                    <div class="tw-text-sm tw-ml-2 tw-mb-1">
+                      <span class="tw-font-medium">{{ getUserDisplayName(user.id) }}</span>
+                      <span class="tw-text-muted"> - {{ getPermissionLabel(user) }}</span>
+                    </div>
+                  }
+                </div>
+              }
 
-            <!-- Group Permissions -->
-            <div *ngIf="existingCollection?.groups && existingCollection.groups.length > 0">
-              <div class="tw-text-sm tw-font-semibold tw-text-muted tw-mb-2">Groups:</div>
-              <div
-                *ngFor="let group of existingCollection.groups"
-                class="tw-text-sm tw-ml-2 tw-mb-1"
-              >
-                <span class="tw-font-medium">{{ getGroupDisplayName(group.id) }}</span>
-                <span class="tw-text-muted"> - {{ getPermissionLabel(group) }}</span>
-              </div>
+              <!-- Group Permissions -->
+              @if (existingCollection?.groups && existingCollection.groups.length > 0) {
+                <div>
+                  <div class="tw-text-sm tw-font-semibold tw-text-muted tw-mb-2">Groups:</div>
+                  @for (group of existingCollection.groups; track group.id) {
+                    <div class="tw-text-sm tw-ml-2 tw-mb-1">
+                      <span class="tw-font-medium">{{ getGroupDisplayName(group.id) }}</span>
+                      <span class="tw-text-muted"> - {{ getPermissionLabel(group) }}</span>
+                    </div>
+                  }
+                </div>
+              }
             </div>
           </div>
         </div>
-      </div>
+      }
 
       <!-- Step 3: Success State with Shareable Link -->
-      <div *ngIf="!loading && sharingComplete">
-        <div class="tw-mb-4">
-          <h3 class="tw-text-lg tw-font-semibold tw-mb-2">
-            Shared {{ createdCollectionName }} successfully!
-          </h3>
-        </div>
+      @if (!loading && sharingComplete) {
+        <div>
+          <div class="tw-mb-4">
+            <h3 class="tw-text-lg tw-font-semibold tw-mb-2">
+              Shared {{ createdCollectionName }} successfully!
+            </h3>
+          </div>
 
-        <!-- Shareable Link Section -->
-        <div class="tw-mt-6 tw-border-t tw-border-secondary-300 tw-pt-4">
-          <div class="tw-mb-3">
-            <span class="tw-font-semibold">Copy Share Link</span>
-          </div>
-          <div class="tw-flex tw-gap-2">
-            <input bitInput readonly [value]="shareableLink" class="tw-flex-1" #shareLinkInput />
-            <button
-              type="button"
-              bitButton
-              buttonType="secondary"
-              (click)="copyShareLink(shareLinkInput)"
-              title="Copy link"
-            >
-              <i class="bwi bwi-clone" aria-hidden="true"></i>
-            </button>
+          <!-- Shareable Link Section -->
+          <div class="tw-mt-6 tw-border-t tw-border-secondary-300 tw-pt-4">
+            <div class="tw-mb-3">
+              <span class="tw-font-semibold">Copy Share Link</span>
+            </div>
+            <div class="tw-flex tw-gap-2">
+              <input
+                id="share-modal_input_shareable-link"
+                bitInput
+                readonly
+                [value]="shareableLink"
+                class="tw-flex-1"
+                #shareLinkInput
+              />
+              <button
+                id="share-modal_button_copy-link"
+                type="button"
+                bitButton
+                buttonType="secondary"
+                (click)="copyShareLink(shareLinkInput)"
+                title="Copy link"
+              >
+                <i class="bwi bwi-clone" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      }
     </div>
     <ng-container bitDialogFooter>
       <!-- Step 1: Initial Share Form Buttons -->
-      <button
-        *ngIf="!showExistingCollectionStep && !sharingComplete"
-        type="submit"
-        bitButton
-        bitFormButton
-        buttonType="primary"
-        [disabled]="loading || !canSave || submitting"
-      >
-        {{ "save" | i18n }}
-      </button>
+      @if (!showExistingCollectionStep && !sharingComplete) {
+        <button
+          id="share-modal_button_save"
+          type="submit"
+          bitButton
+          bitFormButton
+          buttonType="primary"
+          [disabled]="loading || !canSave || submitting"
+        >
+          {{ "save" | i18n }}
+        </button>
+      }
 
       <!-- Step 2: Existing Collection Assignment Buttons -->
-      <button
-        *ngIf="showExistingCollectionStep && !sharingComplete"
-        type="button"
-        bitButton
-        bitFormButton
-        buttonType="primary"
-        (click)="assignToExistingCollection()"
-        [disabled]="submitting"
-      >
-        Use existing
-      </button>
-      <button
-        *ngIf="showExistingCollectionStep && !sharingComplete"
-        type="button"
-        bitButton
-        bitFormButton
-        buttonType="secondary"
-        (click)="createNewCollectionAnyway()"
-        [disabled]="submitting"
-      >
-        Create new
-      </button>
+      @if (showExistingCollectionStep && !sharingComplete) {
+        <button
+          id="share-modal_button_use-existing"
+          type="button"
+          bitButton
+          bitFormButton
+          buttonType="primary"
+          (click)="assignToExistingCollection()"
+          [disabled]="submitting"
+        >
+          Use existing
+        </button>
+      }
+      @if (showExistingCollectionStep && !sharingComplete) {
+        <button
+          id="share-modal_button_create-new"
+          type="button"
+          bitButton
+          bitFormButton
+          buttonType="secondary"
+          (click)="createNewCollectionAnyway()"
+          [disabled]="submitting"
+        >
+          Create new
+        </button>
+      }
 
       <!-- Step 3: Success State Button -->
-      <button
-        *ngIf="sharingComplete"
-        type="button"
-        bitButton
-        bitFormButton
-        buttonType="primary"
-        (click)="done()"
-      >
-        Done
-      </button>
+      @if (sharingComplete) {
+        <button
+          id="share-modal_button_done"
+          type="button"
+          bitButton
+          bitFormButton
+          buttonType="primary"
+          (click)="done()"
+        >
+          Done
+        </button>
+      }
 
       <!-- Cancel Button (shown in steps 1 and 2) -->
-      <button
-        *ngIf="!sharingComplete"
-        type="button"
-        bitButton
-        bitFormButton
-        buttonType="secondary"
-        (click)="cancel()"
-        [disabled]="loading || submitting"
-      >
-        {{ "cancel" | i18n }}
-      </button>
+      @if (!sharingComplete) {
+        <button
+          id="share-modal_button_cancel"
+          type="button"
+          bitButton
+          bitFormButton
+          buttonType="secondary"
+          (click)="cancel()"
+          [disabled]="loading || submitting"
+        >
+          {{ "cancel" | i18n }}
+        </button>
+      }
     </ng-container>
   </bit-dialog>
 </form>
