@@ -25,9 +25,14 @@
           Create a name for this Share and grant groups or members access to the
           {{ ciphers.length }} items.
         </div>
-        <bit-form-field *ngIf="isBulkShare">
-          <bit-label>{{ "name" | i18n }}</bit-label>
-          <input bitInput appAutofocus formControlName="collectionName" required />
+        <bit-form-field>
+          <bit-label>Collection name (required)</bit-label>
+          <input
+            bitInput
+            [appAutofocus]="isBulkShare"
+            formControlName="collectionName"
+            [required]="isBulkShare"
+          />
         </bit-form-field>
 
         <bit-access-selector
@@ -54,11 +59,43 @@
       <!-- Step 2: Existing Collection Assignment -->
       <div *ngIf="!loading && showExistingCollectionStep && !sharingComplete">
         <div class="tw-mb-4">
-          <h3 class="tw-text-lg tw-font-semibold tw-mb-2">Existing collection exists</h3>
-          <p class="tw-text-muted">
+          <h3 class="tw-text-lg tw-font-semibold tw-mb-2">Existing collection found</h3>
+          <p class="tw-text-muted tw-mb-4">
             <strong>{{ existingCollection?.name }}</strong> already exists with the same
             permissions.
           </p>
+
+          <!-- Permission Preview -->
+          <div class="tw-border tw-border-secondary-300 tw-rounded tw-p-4 tw-bg-background-alt">
+            <h4 class="tw-font-semibold tw-mb-3 tw-flex tw-items-center tw-gap-2">
+              <i class="bwi bwi-collection" aria-hidden="true"></i>
+              <span>{{ existingCollection?.name }}</span>
+            </h4>
+
+            <!-- User Permissions -->
+            <div
+              *ngIf="existingCollection?.users && existingCollection.users.length > 0"
+              class="tw-mb-3"
+            >
+              <div class="tw-text-sm tw-font-semibold tw-text-muted tw-mb-2">Members:</div>
+              <div *ngFor="let user of existingCollection.users" class="tw-text-sm tw-ml-2 tw-mb-1">
+                <span class="tw-font-medium">{{ getUserDisplayName(user.id) }}</span>
+                <span class="tw-text-muted"> - {{ getPermissionLabel(user) }}</span>
+              </div>
+            </div>
+
+            <!-- Group Permissions -->
+            <div *ngIf="existingCollection?.groups && existingCollection.groups.length > 0">
+              <div class="tw-text-sm tw-font-semibold tw-text-muted tw-mb-2">Groups:</div>
+              <div
+                *ngFor="let group of existingCollection.groups"
+                class="tw-text-sm tw-ml-2 tw-mb-1"
+              >
+                <span class="tw-font-medium">{{ getGroupDisplayName(group.id) }}</span>
+                <span class="tw-text-muted"> - {{ getPermissionLabel(group) }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -113,7 +150,18 @@
         (click)="assignToExistingCollection()"
         [disabled]="submitting"
       >
-        {{ "save" | i18n }}
+        Use existing
+      </button>
+      <button
+        *ngIf="showExistingCollectionStep && !sharingComplete"
+        type="button"
+        bitButton
+        bitFormButton
+        buttonType="secondary"
+        (click)="createNewCollectionAnyway()"
+        [disabled]="submitting"
+      >
+        Create new
       </button>
 
       <!-- Step 3: Success State Button -->

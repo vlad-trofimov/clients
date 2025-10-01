@@ -140,6 +140,13 @@ export class ShareModalComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     await this.decryptCipherName();
     await this.loadData();
+
+    // Pre-populate collection name with item name for single item sharing
+    if (!this.isBulkShare && this.decryptedCipherName) {
+      this.formGroup.patchValue({
+        collectionName: this.decryptedCipherName,
+      });
+    }
   }
 
   private async decryptCipherName() {
@@ -275,6 +282,100 @@ export class ShareModalComponent implements OnInit, OnDestroy {
 
   done() {
     this.dialogRef.close({ action: "shared" });
+  }
+
+  async createNewCollectionAnyway() {
+    // User chose to create a new collection despite the duplicate
+    this.showExistingCollectionStep = false;
+    this.existingCollection = undefined;
+    this.submitting = true;
+
+    try {
+      // Create the collection
+      const collectionView = await this.createCollection();
+
+      try {
+        // Assign the ciphers to the newly created collection
+        await this.assignCiphersToCollection(collectionView.id);
+
+        // Store collection ID and generate shareable link
+        this.createdCollectionId = collectionView.id;
+        // Set display name based on sharing mode
+        this.createdCollectionName = this.isBulkShare
+          ? this.formGroup.get("collectionName")?.value?.trim() || "Unknown Collection"
+          : this.decryptedCipherName;
+        this.generateShareableLink();
+        this.sharingComplete = true;
+
+        // Show success toast
+        this.toastService.showToast({
+          variant: "success",
+          title: this.i18nService.t("success"),
+          message: this.i18nService.t("itemShared"),
+        });
+      } catch {
+        // Error assigning cipher to collection
+
+        // Collection was created but assignment failed - still show shareable link
+        this.createdCollectionId = collectionView.id;
+        // Set display name based on sharing mode
+        this.createdCollectionName = this.isBulkShare
+          ? this.formGroup.get("collectionName")?.value?.trim() || "Unknown Collection"
+          : this.decryptedCipherName;
+        this.generateShareableLink();
+        this.sharingComplete = true;
+
+        // Collection was created but assignment failed
+        this.toastService.showToast({
+          variant: "warning",
+          title: this.i18nService.t("warning"),
+          message: this.i18nService.t("collectionCreatedButAssignmentFailed"),
+        });
+      }
+    } catch {
+      // Error creating collection
+
+      // Show error toast
+      this.toastService.showToast({
+        variant: "error",
+        title: this.i18nService.t("errorOccurred"),
+        message: this.i18nService.t("collectionCreationFailed"),
+      });
+    } finally {
+      this.submitting = false;
+    }
+  }
+
+  protected getUserDisplayName(userId: string): string {
+    const user = this.accessItems.find(
+      (item) => item.id === userId && item.type === AccessItemType.Member,
+    );
+    return user?.labelName || "Unknown User";
+  }
+
+  protected getGroupDisplayName(groupId: string): string {
+    const group = this.accessItems.find(
+      (item) => item.id === groupId && item.type === AccessItemType.Group,
+    );
+    return group?.labelName || "Unknown Group";
+  }
+
+  protected getPermissionLabel(access: any): string {
+    const permission = this.convertCollectionAccessToPermission(access);
+    switch (permission) {
+      case CollectionPermission.Manage:
+        return "Can manage";
+      case CollectionPermission.Edit:
+        return "Can edit";
+      case CollectionPermission.EditExceptPass:
+        return "Can edit (except passwords)";
+      case CollectionPermission.View:
+        return "Can view";
+      case CollectionPermission.ViewExceptPass:
+        return "Can view (except passwords)";
+      default:
+        return "Unknown permission";
+    }
   }
 
   async assignToExistingCollection() {
@@ -550,12 +651,6 @@ export class ShareModalComponent implements OnInit, OnDestroy {
     for (const collection of this.existingCollections) {
       // Only consider collections where the current user has sharing permissions (Can Manage or Can Edit)
       if (!this.canUserShareInCollection(collection)) {
-        continue;
-      }
-
-      // Only consider collections that have more than one item as potential duplicates
-      const itemCount = await this.getCollectionItemCount(collection.id!);
-      if (itemCount <= 1) {
         continue;
       }
 
