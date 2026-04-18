@@ -9,6 +9,7 @@ import {
   ApplicationHealthView,
   AccessReportView,
   MemberRegistry,
+  MemberRiskInfo,
 } from "../../../models";
 import { CipherHealthService } from "../../abstractions/cipher-health.service";
 import {
@@ -129,6 +130,7 @@ export class DefaultReportGenerationService extends ReportGenerationService {
 
       const allMemberIds = new Set<string>();
       const atRiskMemberIds = new Set<string>();
+      const memberRiskAccumulator = new Map<string, MemberRiskInfo>();
 
       cipherGroup.forEach((cipher) => {
         const health = healthMap.get(cipher.id);
@@ -145,15 +147,33 @@ export class DefaultReportGenerationService extends ReportGenerationService {
         const memberIds = memberMapping.get(cipher.id) ?? [];
         memberIds.forEach((memberId) => {
           allMemberIds.add(memberId);
+          if (!memberRiskAccumulator.has(memberId)) {
+            memberRiskAccumulator.set(memberId, {
+              isAtRisk: false,
+              weakCount: 0,
+              reusedCount: 0,
+              exposedCount: 0,
+            });
+          }
           if (isAtRisk) {
             atRiskMemberIds.add(memberId);
+            const info = memberRiskAccumulator.get(memberId)!;
+            info.isAtRisk = true;
+            if (health?.hasWeakPassword) {info.weakCount++;}
+            if (health?.hasReusedPassword) {info.reusedCount++;}
+            if (health?.hasExposedPassword) {info.exposedCount++;}
           }
         });
       });
 
-      // Build memberRefs Record from collected member IDs
+      // Build memberRefs Record from accumulated risk info
       allMemberIds.forEach((memberId) => {
-        report.memberRefs[memberId] = atRiskMemberIds.has(memberId);
+        report.memberRefs[memberId] = memberRiskAccumulator.get(memberId) ?? {
+          isAtRisk: false,
+          weakCount: 0,
+          reusedCount: 0,
+          exposedCount: 0,
+        };
       });
 
       // Set computed counts

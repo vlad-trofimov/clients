@@ -111,6 +111,52 @@ describe("RiskInsightsReportService", () => {
     expect(otherCom?.passwordCount).toBe(1);
   });
 
+  it("should accumulate subcategory counts across multiple at-risk ciphers for the same member", () => {
+    const member: MemberDetails = {
+      userGuid: "u1",
+      userName: "Alice",
+      email: "alice@example.com",
+      cipherId: "c1" as CipherId,
+    };
+
+    const cipherHealthReports: import("../../models/report-models").CipherHealthReport[] = [
+      {
+        applications: ["github.com"],
+        cipherMembers: [member],
+        healthData: {
+          reusedPasswordCount: 0,
+          weakPasswordDetail: { score: 1, detailValue: { label: "weak", badgeVariant: "warning" } },
+          exposedPasswordDetail: null as any,
+        },
+        cipher: mock<import("@bitwarden/common/vault/models/view/cipher.view").CipherView>({
+          id: "c1" as CipherId,
+        }),
+      },
+      {
+        applications: ["github.com"],
+        cipherMembers: [member],
+        healthData: {
+          reusedPasswordCount: 0,
+          weakPasswordDetail: null as any,
+          exposedPasswordDetail: { cipherId: "c2" as CipherId, exposedXTimes: 10 },
+        },
+        cipher: mock<import("@bitwarden/common/vault/models/view/cipher.view").CipherView>({
+          id: "c2" as CipherId,
+        }),
+      },
+    ];
+
+    const result = service.generateApplicationsReport(cipherHealthReports);
+
+    const report = result.find((r) => r.applicationName === "github.com");
+    expect(report).toBeTruthy();
+    const atRiskMember = report!.atRiskMemberDetails.find((m) => m.email === "alice@example.com");
+    expect(atRiskMember).toBeTruthy();
+    expect(atRiskMember!.weakPasswordCount).toBe(1);
+    expect(atRiskMember!.exposedPasswordCount).toBe(1);
+    expect(atRiskMember!.reusedPasswordCount).toBe(0);
+  });
+
   describe("saveRiskInsightsReport$", () => {
     it("should not update subjects if save response does not have id", (done) => {
       const mockEncryptedOutput: EncryptedDataWithKey = {

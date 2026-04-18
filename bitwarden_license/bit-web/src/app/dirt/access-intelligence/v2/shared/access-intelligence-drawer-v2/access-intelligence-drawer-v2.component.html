@@ -61,7 +61,18 @@
       </div>
       <div class="tw-mt-1">
         @for (member of data.members; track member.email) {
-          <div>{{ member.email }}</div>
+          @let badges = getMemberSubcategoryBadges(member);
+          <div class="tw-flex tw-justify-between tw-items-center tw-py-1">
+            <span>{{ member.email }}</span>
+            <div class="tw-flex tw-gap-1 tw-items-center tw-shrink-0">
+              @if (badges.primary) {
+                <bit-badge [variant]="badges.primary.variant" [bitTooltip]="badges.extraTooltip"
+                  >{{ badges.primary.label
+                  }}{{ badges.extraCount > 0 ? " +" + badges.extraCount : "" }}</bit-badge
+                >
+              }
+            </div>
+          </div>
         }
       </div>
     </ng-container>

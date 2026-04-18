@@ -5360,6 +5360,14 @@
     "message": "Weak",
     "description": "ex. A weak password. Scale: Very Weak -> Weak -> Good -> Strong"
   },
+  "reused": {
+    "message": "Reused",
+    "description": "Label for a reused password subcategory badge in Access Intelligence"
+  },
+  "exposed": {
+    "message": "Exposed",
+    "description": "Label for an exposed password subcategory badge in Access Intelligence"
+  },
   "veryWeak": {
     "message": "Very Weak",
     "description": "ex. A very weak password. Scale: Very Weak -> Weak -> Good -> Strong"

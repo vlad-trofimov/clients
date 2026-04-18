@@ -18,6 +18,9 @@ export type MemberDetails = {
   userName: string | null;
   email: string;
   cipherId: string;
+  weakPasswordCount?: number;
+  reusedPasswordCount?: number;
+  exposedPasswordCount?: number;
 };
 
 // -------------------- Cipher Models --------------------

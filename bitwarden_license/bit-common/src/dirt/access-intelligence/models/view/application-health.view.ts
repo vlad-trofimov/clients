@@ -10,6 +10,20 @@ import { MemberRegistry } from "./access-report.view";
 import { MemberRegistryEntryView } from "./member-registry-entry.view";
 
 /**
+ * Per-member aggregated risk subcategory counts for a single application.
+ *
+ * Counts reflect how many of the member's at-risk passwords within the
+ * application fall into each subcategory. A password can be counted in
+ * multiple subcategories simultaneously.
+ */
+export interface MemberRiskInfo {
+  isAtRisk: boolean;
+  weakCount: number;
+  reusedCount: number;
+  exposedCount: number;
+}
+
+/**
  * View model for Application Health containing decrypted application health data
  *
  * Uses the member registry pattern to eliminate duplicate member storage across applications.
@@ -34,15 +48,15 @@ export class ApplicationHealthView implements View {
   iconCipherId?: string;
 
   /**
-   * Member references with at-risk status
+   * Member references with risk subcategory counts
    *
-   * Record<OrganizationUserId, boolean> where:
+   * Record<OrganizationUserId, MemberRiskInfo> where:
    * - Key: member ID (userGuid)
-   * - Value: true if at-risk, false if not at-risk
+   * - Value: at-risk flag plus per-subcategory password counts
    *
    * Replaces: memberDetails[] + atRiskMemberDetails[]
    */
-  memberRefs: Record<string, boolean> = {};
+  memberRefs: Record<string, MemberRiskInfo> = {};
 
   /**
    * Cipher references with at-risk status
@@ -85,9 +99,19 @@ export class ApplicationHealthView implements View {
    */
   getAtRiskMembers(registry: MemberRegistry): MemberRegistryEntryView[] {
     return Object.entries(this.memberRefs)
-      .filter(([_, isAtRisk]) => isAtRisk)
+      .filter(([_, info]) => info.isAtRisk)
       .map(([id]) => registry[id])
       .filter((entry): entry is MemberRegistryEntryView => entry !== undefined);
+  }
+
+  /**
+   * Get risk subcategory counts for a specific member
+   *
+   * @param memberId - Organization user ID
+   * @returns MemberRiskInfo if the member has access, undefined otherwise
+   */
+  getMemberRiskInfo(memberId: string): MemberRiskInfo | undefined {
+    return this.memberRefs[memberId];
   }
 
   /**
@@ -116,7 +140,7 @@ export class ApplicationHealthView implements View {
    * @returns True if member is at-risk
    */
   isMemberAtRisk(memberId: string): boolean {
-    return this.memberRefs[memberId] === true;
+    return this.memberRefs[memberId]?.isAtRisk === true;
   }
 
   /**
@@ -165,7 +189,7 @@ export class ApplicationHealthView implements View {
     view.applicationName = data.applicationName;
     view.passwordCount = data.passwordCount;
     view.atRiskPasswordCount = data.atRiskPasswordCount;
-    view.memberRefs = { ...data.memberRefs };
+    view.memberRefs = ApplicationHealthView.normalizeMemberRefs(data.memberRefs);
     view.cipherRefs = { ...data.cipherRefs };
     view.memberCount = data.memberCount;
     view.atRiskMemberCount = data.atRiskMemberCount;
@@ -183,11 +207,31 @@ export class ApplicationHealthView implements View {
 
     const view = Object.assign(new ApplicationHealthView(), obj) as ApplicationHealthView;
 
-    // Ensure memberRefs and cipherRefs are objects (not arrays)
-    view.memberRefs = obj.memberRefs ?? {};
+    // Ensure memberRefs and cipherRefs are objects (not arrays), normalizing legacy boolean format
+    view.memberRefs = ApplicationHealthView.normalizeMemberRefs(obj.memberRefs ?? {});
     view.cipherRefs = obj.cipherRefs ?? {};
 
     return view;
+  }
+
+  /**
+   * Normalizes memberRefs from either legacy boolean format or current MemberRiskInfo format.
+   *
+   * Reports generated before this change stored memberRefs as Record<string, boolean>.
+   * This method accepts either format and always returns Record<string, MemberRiskInfo>.
+   */
+  private static normalizeMemberRefs(
+    raw: Record<string, boolean | MemberRiskInfo>,
+  ): Record<string, MemberRiskInfo> {
+    const normalized: Record<string, MemberRiskInfo> = {};
+    for (const [id, value] of Object.entries(raw)) {
+      if (typeof value === "boolean") {
+        normalized[id] = { isAtRisk: value, weakCount: 0, reusedCount: 0, exposedCount: 0 };
+      } else {
+        normalized[id] = value;
+      }
+    }
+    return normalized;
   }
 
   // [TODO] SDK Mapping

@@ -29,6 +29,7 @@ import {
   AccessReportSummaryView,
   AccessReportView,
   MemberRegistry,
+  MemberRiskInfo,
 } from "../../../access-intelligence/models";
 import {
   CollectionAccessDetails,
@@ -352,7 +353,7 @@ export function createAccessReportMetrics(
  * Creates a risk insights report for an application
  *
  * @param applicationName - Name of the application (e.g., "github.com")
- * @param memberRefs - Record mapping member IDs to at-risk status
+ * @param memberRefs - Record mapping member IDs to at-risk status (boolean) or full MemberRiskInfo
  * @param cipherRefs - Record mapping cipher IDs to at-risk status
  * @returns ApplicationHealthView for testing
  *
@@ -362,20 +363,35 @@ export function createAccessReportMetrics(
  *   { u1: true, u2: false },
  *   { c1: true, c2: false }
  * );
+ * // With subcategory counts:
+ * const report = createReport(
+ *   "github.com",
+ *   { u1: { isAtRisk: true, weakCount: 1, reusedCount: 0, exposedCount: 0 } },
+ *   { c1: true }
+ * );
  */
 export function createReport(
   applicationName: string,
-  memberRefs: Record<string, boolean> = {},
+  memberRefs: Record<string, boolean | MemberRiskInfo> = {},
   cipherRefs: Record<string, boolean> = {},
 ): ApplicationHealthView {
+  const normalizedMemberRefs: Record<string, MemberRiskInfo> = {};
+  for (const [id, value] of Object.entries(memberRefs)) {
+    if (typeof value === "boolean") {
+      normalizedMemberRefs[id] = { isAtRisk: value, weakCount: 0, reusedCount: 0, exposedCount: 0 };
+    } else {
+      normalizedMemberRefs[id] = value;
+    }
+  }
+
   const report = new ApplicationHealthView();
   report.applicationName = applicationName;
-  report.memberRefs = memberRefs;
+  report.memberRefs = normalizedMemberRefs;
   report.cipherRefs = cipherRefs;
   report.passwordCount = Object.keys(cipherRefs).length;
   report.atRiskPasswordCount = Object.values(cipherRefs).filter((v) => v).length;
-  report.memberCount = Object.keys(memberRefs).length;
-  report.atRiskMemberCount = Object.values(memberRefs).filter((v) => v).length;
+  report.memberCount = Object.keys(normalizedMemberRefs).length;
+  report.atRiskMemberCount = Object.values(normalizedMemberRefs).filter((v) => v.isAtRisk).length;
   return report;
 }
 

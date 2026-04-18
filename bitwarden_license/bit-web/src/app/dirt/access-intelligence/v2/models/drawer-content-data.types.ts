@@ -2,7 +2,7 @@ import { DrawerType } from "@bitwarden/bit-common/dirt/access-intelligence/servi
 
 /**
  * Base member data included in drawer content.
- * Represents a member with their at-risk password count.
+ * Represents a member with their at-risk password count and subcategory breakdown.
  */
 export interface DrawerMemberData {
   /** Member's email address */
@@ -13,6 +13,12 @@ export interface DrawerMemberData {
   userGuid: string;
   /** Number of at-risk passwords for this member */
   atRiskPasswordCount: number;
+  /** Number of weak passwords for this member in the current application context */
+  weakPasswordCount: number;
+  /** Number of reused passwords for this member in the current application context */
+  reusedPasswordCount: number;
+  /** Number of exposed passwords for this member in the current application context */
+  exposedPasswordCount: number;
 }
 
 /**

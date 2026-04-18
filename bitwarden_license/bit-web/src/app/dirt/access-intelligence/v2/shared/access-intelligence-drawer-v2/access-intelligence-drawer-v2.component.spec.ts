@@ -29,8 +29,24 @@ describe("AccessIntelligenceDrawerV2Component", () => {
 
   /** Sample members used in drawer data */
   const sampleMembers: DrawerMemberData[] = [
-    { email: "alice@example.com", userName: "Alice Smith", userGuid: "u1", atRiskPasswordCount: 5 },
-    { email: "bob@example.com", userName: "Bob Jones", userGuid: "u2", atRiskPasswordCount: 3 },
+    {
+      email: "alice@example.com",
+      userName: "Alice Smith",
+      userGuid: "u1",
+      atRiskPasswordCount: 5,
+      weakPasswordCount: 2,
+      reusedPasswordCount: 1,
+      exposedPasswordCount: 2,
+    },
+    {
+      email: "bob@example.com",
+      userName: "Bob Jones",
+      userGuid: "u2",
+      atRiskPasswordCount: 3,
+      weakPasswordCount: 3,
+      reusedPasswordCount: 0,
+      exposedPasswordCount: 0,
+    },
   ];
 
   /** Sample applications used in drawer data */

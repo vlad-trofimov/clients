@@ -16,7 +16,7 @@ describe("ApplicationHealthView", () => {
     atRiskPasswordCount: number,
   ): ApplicationHealthView => {
     const report = createReport("test-app", memberRefs, cipherRefs);
-    report.atRiskPasswordCount = atRiskPasswordCount; // Override if needed
+    report.atRiskPasswordCount = atRiskPasswordCount;
     return report;
   };
 
@@ -100,6 +100,26 @@ describe("ApplicationHealthView", () => {
       const atRiskMembers = report.getAtRiskMembers(registry);
 
       expect(atRiskMembers).toHaveLength(0);
+    });
+  });
+
+  describe("getMemberRiskInfo", () => {
+    it("should return MemberRiskInfo for a known member", () => {
+      const report = new ApplicationHealthView();
+      report.memberRefs = {
+        u1: { isAtRisk: true, weakCount: 2, reusedCount: 1, exposedCount: 0 },
+      };
+
+      const info = report.getMemberRiskInfo("u1");
+
+      expect(info).toEqual({ isAtRisk: true, weakCount: 2, reusedCount: 1, exposedCount: 0 });
+    });
+
+    it("should return undefined for an unknown member", () => {
+      const report = new ApplicationHealthView();
+      report.memberRefs = { u1: { isAtRisk: true, weakCount: 0, reusedCount: 0, exposedCount: 0 } };
+
+      expect(report.getMemberRiskInfo("u999")).toBeUndefined();
     });
   });
 
@@ -220,10 +240,29 @@ describe("ApplicationHealthView", () => {
       expect(view.applicationName).toBe("github.com");
       expect(view.passwordCount).toBe(10);
       expect(view.atRiskPasswordCount).toBe(3);
-      expect(view.memberRefs).toEqual({ u1: true, u2: false });
+      expect(view.memberRefs).toEqual({
+        u1: { isAtRisk: true, weakCount: 0, reusedCount: 0, exposedCount: 0 },
+        u2: { isAtRisk: false, weakCount: 0, reusedCount: 0, exposedCount: 0 },
+      });
       expect(view.cipherRefs).toEqual({ c1: true, c2: false, c3: false });
       expect(view.memberCount).toBe(2);
       expect(view.atRiskMemberCount).toBe(1);
+    });
+
+    it("should preserve MemberRiskInfo when already in new format", () => {
+      const data = new ApplicationHealthData();
+      data.memberRefs = {
+        u1: { isAtRisk: true, weakCount: 2, reusedCount: 1, exposedCount: 0 },
+      };
+
+      const view = ApplicationHealthView.fromData(data);
+
+      expect(view.memberRefs["u1"]).toEqual({
+        isAtRisk: true,
+        weakCount: 2,
+        reusedCount: 1,
+        exposedCount: 0,
+      });
     });
 
     it("should create independent copies of memberRefs and cipherRefs", () => {
@@ -234,7 +273,7 @@ describe("ApplicationHealthView", () => {
       const view = ApplicationHealthView.fromData(data);
 
       // Mutating the view should not affect the source data
-      view.memberRefs["u2"] = false;
+      view.memberRefs["u2"] = { isAtRisk: false, weakCount: 0, reusedCount: 0, exposedCount: 0 };
       view.cipherRefs["c2"] = true;
 
       expect(data.memberRefs).not.toHaveProperty("u2");
@@ -267,7 +306,7 @@ describe("ApplicationHealthView", () => {
   // ==================== Serialization ====================
 
   describe("fromJSON", () => {
-    it("should initialize from JSON object", () => {
+    it("should initialize from JSON object with legacy boolean memberRefs", () => {
       const json = {
         applicationName: "github.com",
         passwordCount: 10,
@@ -284,10 +323,33 @@ describe("ApplicationHealthView", () => {
       expect(report.applicationName).toBe("github.com");
       expect(report.passwordCount).toBe(10);
       expect(report.atRiskPasswordCount).toBe(3);
-      expect(report.memberRefs).toEqual({ u1: true, u2: false });
+      expect(report.memberRefs).toEqual({
+        u1: { isAtRisk: true, weakCount: 0, reusedCount: 0, exposedCount: 0 },
+        u2: { isAtRisk: false, weakCount: 0, reusedCount: 0, exposedCount: 0 },
+      });
       expect(report.cipherRefs).toEqual({ c1: true, c2: false });
       expect(report.memberCount).toBe(2);
       expect(report.atRiskMemberCount).toBe(1);
+    });
+
+    it("should initialize from JSON object with new MemberRiskInfo memberRefs", () => {
+      const json = {
+        applicationName: "github.com",
+        memberRefs: {
+          u1: { isAtRisk: true, weakCount: 1, reusedCount: 1, exposedCount: 0 },
+          u2: { isAtRisk: false, weakCount: 0, reusedCount: 0, exposedCount: 0 },
+        },
+        cipherRefs: { c1: true },
+      };
+
+      const report = ApplicationHealthView.fromJSON(json);
+
+      expect(report.memberRefs["u1"]).toEqual({
+        isAtRisk: true,
+        weakCount: 1,
+        reusedCount: 1,
+        exposedCount: 0,
+      });
     });
 
     it("should handle undefined input", () => {
@@ -300,9 +362,7 @@ describe("ApplicationHealthView", () => {
     });
 
     it("should ensure memberRefs and cipherRefs are objects when missing", () => {
-      const json = {
-        applicationName: "github.com",
-      };
+      const json = { applicationName: "github.com" };
 
       const report = ApplicationHealthView.fromJSON(json);
 

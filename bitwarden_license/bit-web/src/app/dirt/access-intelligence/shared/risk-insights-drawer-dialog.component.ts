@@ -1,22 +1,35 @@
 import { Component, ChangeDetectionStrategy, Inject } from "@angular/core";
 
 import { DrawerDetails, DrawerType } from "@bitwarden/bit-common/dirt/reports/risk-insights";
+import { MemberDetails } from "@bitwarden/bit-common/dirt/reports/risk-insights/models/report-models";
 import { FileDownloadService } from "@bitwarden/common/platform/abstractions/file-download/file-download.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import {
+  BadgeModule,
   ButtonModule,
   DIALOG_DATA,
   DialogModule,
   IconModule,
   LinkModule,
+  TooltipDirective,
 } from "@bitwarden/components";
 import { LogService } from "@bitwarden/logging";
 import { I18nPipe } from "@bitwarden/ui-common";
 import { ExportHelper } from "@bitwarden/vault-export-core";
 import { exportToCSV } from "@bitwarden/web-vault/app/dirt/reports/report-utils";
 
+import { getMemberSubcategoryBadges } from "./subcategory-badge.utils";
+
 @Component({
-  imports: [DialogModule, I18nPipe, ButtonModule, IconModule, LinkModule],
+  imports: [
+    BadgeModule,
+    ButtonModule,
+    DialogModule,
+    IconModule,
+    I18nPipe,
+    LinkModule,
+    TooltipDirective,
+  ],
   templateUrl: "./risk-insights-drawer-dialog.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -35,6 +48,12 @@ export class RiskInsightsDrawerDialogComponent {
 
   isActiveDrawerType(type: DrawerType): boolean {
     return this.drawerDetails.activeDrawerType === type;
+  }
+
+  protected getMemberSubcategoryBadges(
+    member: MemberDetails,
+  ): ReturnType<typeof getMemberSubcategoryBadges> {
+    return getMemberSubcategoryBadges(member, (key) => this.i18nService.t(key));
   }
 
   /**

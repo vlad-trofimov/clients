@@ -22,7 +22,7 @@ import {
   OrganizationReportApplication,
   OrganizationReportSummary,
 } from "../../../../reports/risk-insights/models";
-import { MemberRegistryEntryData, ApplicationHealthData } from "../../../models";
+import { MemberRegistryEntryData, ApplicationHealthData, MemberRiskInfo } from "../../../models";
 import {
   EncryptedDataWithKey,
   EncryptedReportData,
@@ -327,26 +327,33 @@ export class LegacyRiskInsightsEncryptionService {
         .filter(([, isAtRisk]) => isAtRisk)
         .map(([id]) => id as CipherId);
 
-      const toMemberDetails = (userId: string): MemberDetails | null => {
+      const toMemberDetails = (
+        userId: string,
+        info?: boolean | MemberRiskInfo,
+      ): MemberDetails | null => {
         const entry = memberRegistry[userId];
         if (!entry) {
           return null;
         }
+        const riskInfo = typeof info === "object" ? info : null;
         return {
           userGuid: entry.id,
           userName: entry.userName ?? null, // V1 uses null; V2 uses undefined
           email: entry.email,
           cipherId: this._nilCipherId,
+          weakPasswordCount: riskInfo?.weakCount ?? 0,
+          reusedPasswordCount: riskInfo?.reusedCount ?? 0,
+          exposedPasswordCount: riskInfo?.exposedCount ?? 0,
         };
       };
 
       const memberDetails = Object.keys(report.memberRefs)
-        .map(toMemberDetails)
+        .map((userId) => toMemberDetails(userId))
         .filter((m): m is MemberDetails => m !== null);
 
       const atRiskMemberDetails = Object.entries(report.memberRefs)
-        .filter(([, isAtRisk]) => isAtRisk)
-        .map(([userId]) => toMemberDetails(userId))
+        .filter(([, info]) => (typeof info === "boolean" ? info : info.isAtRisk))
+        .map(([userId, info]) => toMemberDetails(userId, info))
         .filter((m): m is MemberDetails => m !== null);
 
       return {

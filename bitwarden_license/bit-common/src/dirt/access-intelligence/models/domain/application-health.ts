@@ -5,7 +5,7 @@ import Domain from "@bitwarden/common/platform/models/domain/domain-base";
 import { ApplicationHealthApi } from "../api/application-health.api";
 import { ApplicationHealthData } from "../data/application-health.data";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { ApplicationHealthView } from "../view/application-health.view";
+import { ApplicationHealthView, MemberRiskInfo } from "../view/application-health.view";
 
 /**
  * Domain model for generated report data in Access Intelligence containing encrypted properties
@@ -23,11 +23,11 @@ export class ApplicationHealth extends Domain {
   atRiskPasswordCount: EncString = new EncString("");
 
   /**
-   * Member references with at-risk status
-   * Record<OrganizationUserId, boolean> where value indicates at-risk status
+   * Member references with risk subcategory counts.
+   * Accepts legacy boolean format (old reports) or MemberRiskInfo (new reports).
    * Replaces: memberDetails[] + atRiskMemberDetails[]
    */
-  memberRefs: Record<string, boolean> = {};
+  memberRefs: Record<string, boolean | MemberRiskInfo> = {};
 
   /**
    * Cipher references with at-risk status

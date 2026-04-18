@@ -3,13 +3,14 @@ import { Component, ChangeDetectionStrategy, inject } from "@angular/core";
 import { DrawerType } from "@bitwarden/bit-common/dirt/access-intelligence/services";
 import { FileDownloadService } from "@bitwarden/common/platform/abstractions/file-download/file-download.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
-import { DIALOG_DATA } from "@bitwarden/components";
+import { DIALOG_DATA, TooltipDirective } from "@bitwarden/components";
 import { LogService } from "@bitwarden/logging";
 import { ExportHelper } from "@bitwarden/vault-export-core";
 import { exportToCSV } from "@bitwarden/web-vault/app/dirt/reports/report-utils";
 import { SharedModule } from "@bitwarden/web-vault/app/shared";
 
-import { DrawerContentData } from "../../models/drawer-content-data.types";
+import { getMemberSubcategoryBadges } from "../../../../shared/subcategory-badge.utils";
+import { DrawerContentData, DrawerMemberData } from "../../models/drawer-content-data.types";
 
 /**
  * Displays a contextual drawer panel for Access Intelligence report data.
@@ -20,7 +21,7 @@ import { DrawerContentData } from "../../models/drawer-content-data.types";
  */
 @Component({
   selector: "dirt-access-intelligence-drawer-v2",
-  imports: [SharedModule],
+  imports: [SharedModule, TooltipDirective],
   templateUrl: "./access-intelligence-drawer-v2.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -38,6 +39,12 @@ export class AccessIntelligenceDrawerV2Component {
 
   // Expose DrawerType enum to template
   protected readonly DrawerType = DrawerType;
+
+  protected getMemberSubcategoryBadges(
+    member: DrawerMemberData,
+  ): ReturnType<typeof getMemberSubcategoryBadges> {
+    return getMemberSubcategoryBadges(member, (key) => this.i18nService.t(key));
+  }
 
   /**
    * Downloads at-risk members as CSV.

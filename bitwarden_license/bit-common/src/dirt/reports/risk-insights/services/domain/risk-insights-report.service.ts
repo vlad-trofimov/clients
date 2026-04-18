@@ -17,10 +17,11 @@ import {
 import { RiskInsightsMetrics } from "../../models/domain/risk-insights-metrics";
 import {
   ApplicationHealthReportDetail,
-  OrganizationReportSummary,
   CipherHealthReport,
-  PasswordHealthData,
+  MemberDetails,
   OrganizationReportApplication,
+  OrganizationReportSummary,
+  PasswordHealthData,
   RiskInsightsData,
 } from "../../models/report-models";
 import { RiskInsightsApiService } from "../api/risk-insights-api.service";
@@ -396,9 +397,35 @@ export class RiskInsightsReportService {
   }
 
   private _getAtRiskData(report: ApplicationHealthReportDetail, cipherReport: CipherHealthReport) {
-    const atRiskMemberDetails = getUniqueMembers(
-      report.atRiskMemberDetails.concat(cipherReport.cipherMembers),
+    const { weakPasswordDetail, exposedPasswordDetail, reusedPasswordCount } =
+      cipherReport.healthData;
+    const isWeak = !!weakPasswordDetail;
+    const isReused = reusedPasswordCount > 1;
+    const isExposed = !!exposedPasswordDetail;
+
+    // Accumulate subcategory counts per member, merging existing entries by email
+    const memberMap = new Map<string, MemberDetails>(
+      report.atRiskMemberDetails.map((m) => [m.email, { ...m }]),
     );
+
+    cipherReport.cipherMembers.forEach((member) => {
+      const existing = memberMap.get(member.email);
+      if (existing) {
+        existing.weakPasswordCount = (existing.weakPasswordCount ?? 0) + (isWeak ? 1 : 0);
+        existing.reusedPasswordCount = (existing.reusedPasswordCount ?? 0) + (isReused ? 1 : 0);
+        existing.exposedPasswordCount = (existing.exposedPasswordCount ?? 0) + (isExposed ? 1 : 0);
+      } else {
+        memberMap.set(member.email, {
+          ...member,
+          weakPasswordCount: isWeak ? 1 : 0,
+          reusedPasswordCount: isReused ? 1 : 0,
+          exposedPasswordCount: isExposed ? 1 : 0,
+        });
+      }
+    });
+
+    const atRiskMemberDetails = Array.from(memberMap.values());
+
     return {
       atRiskPasswordCount: report.atRiskPasswordCount + 1,
       atRiskCipherIds: report.atRiskCipherIds.concat(cipherReport.cipher.id as CipherId),

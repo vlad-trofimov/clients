@@ -23,11 +23,11 @@ export class ApplicationHealthApi extends BaseResponse {
   atRiskPasswordCount: number = 0;
 
   /**
-   * Member references with at-risk status
-   * Record<OrganizationUserId, boolean> where value indicates at-risk status
+   * Member references with risk subcategory counts.
+   * May be legacy boolean format (old reports) or MemberRiskInfo (new reports).
    * Replaces: memberDetails[] + atRiskMemberDetails[]
    */
-  memberRefs: Record<string, boolean> = {};
+  memberRefs: Record<string, unknown> = {};
 
   /**
    * Cipher references with at-risk status

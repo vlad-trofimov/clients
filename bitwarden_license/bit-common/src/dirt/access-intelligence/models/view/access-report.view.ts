@@ -64,7 +64,7 @@ export class AccessReportView implements View {
 
     this.reports.forEach((report) => {
       Object.entries(report.memberRefs)
-        .filter(([_, isAtRisk]) => isAtRisk)
+        .filter(([_, info]) => info.isAtRisk)
         .forEach(([memberId]) => atRiskMemberIds.add(memberId));
     });
 
@@ -115,7 +115,7 @@ export class AccessReportView implements View {
 
     this.getCriticalApplications().forEach((report) => {
       Object.entries(report.memberRefs)
-        .filter(([_, isAtRisk]) => isAtRisk)
+        .filter(([_, info]) => info.isAtRisk)
         .forEach(([memberId]) => criticalAtRiskMemberIds.add(memberId));
     });
 
@@ -180,7 +180,7 @@ export class AccessReportView implements View {
     // Count across all applications where member is at-risk
     let count = 0;
     this.reports.forEach((report) => {
-      if (report.memberRefs[memberId] === true) {
+      if (report.memberRefs[memberId]?.isAtRisk === true) {
         count += report.getAtRiskCipherIds().length;
       }
     });
@@ -294,9 +294,9 @@ export class AccessReportView implements View {
     const criticalAtRiskMemberIds = new Set<string>();
 
     criticalReports.forEach((report) => {
-      Object.entries(report.memberRefs).forEach(([memberId, isAtRisk]) => {
+      Object.entries(report.memberRefs).forEach(([memberId, info]) => {
         criticalMemberIds.add(memberId);
-        if (isAtRisk) {
+        if (info.isAtRisk) {
           criticalAtRiskMemberIds.add(memberId);
         }
       });

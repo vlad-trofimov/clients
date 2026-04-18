@@ -478,8 +478,8 @@ describe("DefaultReportPersistenceService", () => {
       expect(result!.report.reports[0].cipherRefs["c2"]).toBe(true);
       expect(result!.report.reports[0].cipherRefs["c3"]).toBe(false);
 
-      expect(result!.report.reports[0].memberRefs["m1"]).toBe(true);
-      expect(result!.report.reports[0].memberRefs["m2"]).toBe(false);
+      expect(result!.report.reports[0].memberRefs["m1"].isAtRisk).toBe(true);
+      expect(result!.report.reports[0].memberRefs["m2"].isAtRisk).toBe(false);
 
       expect(result!.report.applications[0].applicationName).toBe("gitlab.com");
       expect(result!.report.applications[0].isCritical).toBe(false);

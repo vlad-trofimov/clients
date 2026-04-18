@@ -2,7 +2,7 @@ import { ApplicationHealthApi } from "../api/application-health.api";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ApplicationHealth } from "../domain/application-health";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { ApplicationHealthView } from "../view/application-health.view";
+import { ApplicationHealthView, MemberRiskInfo } from "../view/application-health.view";
 
 /**
  * Serializable data model for generated report in access report
@@ -20,11 +20,11 @@ export class ApplicationHealthData {
   atRiskPasswordCount: number = 0;
 
   /**
-   * Member references with at-risk status
-   * Record<OrganizationUserId, boolean> where value indicates at-risk status
+   * Member references with risk subcategory counts.
+   * Accepts legacy boolean format (old reports) or MemberRiskInfo (new reports).
    * Replaces: memberDetails[] + atRiskMemberDetails[]
    */
-  memberRefs: Record<string, boolean> = {};
+  memberRefs: Record<string, boolean | MemberRiskInfo> = {};
 
   /**
    * Cipher references with at-risk status
@@ -47,7 +47,7 @@ export class ApplicationHealthData {
     this.applicationName = data.applicationName;
     this.passwordCount = data.passwordCount;
     this.atRiskPasswordCount = data.atRiskPasswordCount;
-    this.memberRefs = data.memberRefs ?? {};
+    this.memberRefs = (data.memberRefs ?? {}) as Record<string, boolean | MemberRiskInfo>;
     this.cipherRefs = data.cipherRefs ?? {};
     this.memberCount = data.memberCount;
     this.atRiskMemberCount = data.atRiskMemberCount;

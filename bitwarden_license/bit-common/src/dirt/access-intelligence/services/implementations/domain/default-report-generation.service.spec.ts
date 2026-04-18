@@ -264,8 +264,8 @@ describe("DefaultReportGenerationService", () => {
       );
 
       const report = result.reports[0];
-      expect(report.memberRefs["u1"]).toBe(true); // u1 has access to at-risk c1
-      expect(report.memberRefs["u2"]).toBe(false); // u2 has access to safe c2
+      expect(report.memberRefs["u1"].isAtRisk).toBe(true); // u1 has access to at-risk c1
+      expect(report.memberRefs["u2"].isAtRisk).toBe(false); // u2 has access to safe c2
       expect(report.memberCount).toBe(2);
       expect(report.atRiskMemberCount).toBe(1);
     });
@@ -341,9 +341,123 @@ describe("DefaultReportGenerationService", () => {
       const report = result.reports[0];
       // u1 should appear only once despite having access to both ciphers
       expect(Object.keys(report.memberRefs).length).toBe(1);
-      expect(report.memberRefs["u1"]).toBe(true); // At-risk because c1 is at-risk
+      expect(report.memberRefs["u1"].isAtRisk).toBe(true); // At-risk because c1 is at-risk
       expect(report.memberCount).toBe(1);
       expect(report.atRiskMemberCount).toBe(1);
+    });
+  });
+
+  // ==================== Subcategory Count Tests ====================
+
+  describe("generateReport - Subcategory Counts", () => {
+    it("should record weakCount for a member with a weak cipher", async () => {
+      const ciphers = [createCipher("c1", ["https://github.com"], ["coll-1"])];
+      const members = [createMember("u1", "Alice", "alice@example.com")];
+      const collectionAccess = [createCollectionAccess("coll-1", ["u1"], [])];
+      const groupMemberships: GroupMembershipDetails[] = [];
+
+      const healthMap = new Map([
+        [
+          "c1",
+          createCipherHealth(true, {
+            hasWeakPassword: true,
+            hasReusedPassword: false,
+            hasExposedPassword: false,
+          }),
+        ],
+      ]);
+      cipherHealthService.checkCipherHealth.mockReturnValue(of(healthMap));
+
+      const mapping = new Map([["c1", ["u1"]]]);
+      const registry = createMemberRegistry([
+        { id: "u1", name: "Alice", email: "alice@example.com" },
+      ]);
+      memberCipherMappingService.mapCiphersToMembers.mockReturnValue(of({ mapping, registry }));
+
+      const result = await firstValueFrom(
+        service.generateReport(ciphers, members, collectionAccess, groupMemberships),
+      );
+
+      const riskInfo = result.reports[0].memberRefs["u1"];
+      expect(riskInfo.isAtRisk).toBe(true);
+      expect(riskInfo.weakCount).toBe(1);
+      expect(riskInfo.reusedCount).toBe(0);
+      expect(riskInfo.exposedCount).toBe(0);
+    });
+
+    it("should accumulate multiple subcategory flags from multiple ciphers", async () => {
+      const ciphers = [
+        createCipher("c1", ["https://github.com"], ["coll-1"]),
+        createCipher("c2", ["https://github.com"], ["coll-1"]),
+      ];
+      const members = [createMember("u1", "Alice", "alice@example.com")];
+      const collectionAccess = [createCollectionAccess("coll-1", ["u1"], [])];
+      const groupMemberships: GroupMembershipDetails[] = [];
+
+      const healthMap = new Map([
+        [
+          "c1",
+          createCipherHealth(true, {
+            hasWeakPassword: true,
+            hasReusedPassword: true,
+            hasExposedPassword: false,
+          }),
+        ],
+        [
+          "c2",
+          createCipherHealth(true, {
+            hasWeakPassword: false,
+            hasReusedPassword: false,
+            hasExposedPassword: true,
+          }),
+        ],
+      ]);
+      cipherHealthService.checkCipherHealth.mockReturnValue(of(healthMap));
+
+      const mapping = new Map([
+        ["c1", ["u1"]],
+        ["c2", ["u1"]],
+      ]);
+      const registry = createMemberRegistry([
+        { id: "u1", name: "Alice", email: "alice@example.com" },
+      ]);
+      memberCipherMappingService.mapCiphersToMembers.mockReturnValue(of({ mapping, registry }));
+
+      const result = await firstValueFrom(
+        service.generateReport(ciphers, members, collectionAccess, groupMemberships),
+      );
+
+      const riskInfo = result.reports[0].memberRefs["u1"];
+      expect(riskInfo.isAtRisk).toBe(true);
+      expect(riskInfo.weakCount).toBe(1);
+      expect(riskInfo.reusedCount).toBe(1);
+      expect(riskInfo.exposedCount).toBe(1);
+    });
+
+    it("should set all subcategory counts to zero for non-at-risk members", async () => {
+      const ciphers = [createCipher("c1", ["https://github.com"], ["coll-1"])];
+      const members = [createMember("u1", "Alice", "alice@example.com")];
+      const collectionAccess = [createCollectionAccess("coll-1", ["u1"], [])];
+      const groupMemberships: GroupMembershipDetails[] = [];
+
+      const healthMap = new Map([["c1", createCipherHealth(false)]]);
+      cipherHealthService.checkCipherHealth.mockReturnValue(of(healthMap));
+
+      const mapping = new Map([["c1", ["u1"]]]);
+      const registry = createMemberRegistry([
+        { id: "u1", name: "Alice", email: "alice@example.com" },
+      ]);
+      memberCipherMappingService.mapCiphersToMembers.mockReturnValue(of({ mapping, registry }));
+
+      const result = await firstValueFrom(
+        service.generateReport(ciphers, members, collectionAccess, groupMemberships),
+      );
+
+      const riskInfo = result.reports[0].memberRefs["u1"];
+      expect(riskInfo.isAtRisk).toBe(false);
+      expect(riskInfo.weakCount).toBe(0);
+      expect(riskInfo.reusedCount).toBe(0);
+      expect(riskInfo.exposedCount).toBe(0);
     });
   });
 

@@ -352,11 +352,20 @@ export class AccessIntelligencePageComponent implements OnInit, OnDestroy {
     report: AccessReportView,
     app?: ApplicationHealthView,
   ): DrawerMemberData[] {
-    return members.map((member) => ({
-      email: member.email,
-      userName: member.userName ?? "",
-      userGuid: member.id,
-      atRiskPasswordCount: report.getAtRiskPasswordCountForMember(member.id, app?.applicationName),
-    }));
+    return members.map((member) => {
+      const riskInfo = app?.getMemberRiskInfo(member.id);
+      return {
+        email: member.email,
+        userName: member.userName ?? "",
+        userGuid: member.id,
+        atRiskPasswordCount: report.getAtRiskPasswordCountForMember(
+          member.id,
+          app?.applicationName,
+        ),
+        weakPasswordCount: riskInfo?.weakCount ?? 0,
+        reusedPasswordCount: riskInfo?.reusedCount ?? 0,
+        exposedPasswordCount: riskInfo?.exposedCount ?? 0,
+      };
+    });
   }
 }
