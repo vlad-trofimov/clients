@@ -49,6 +49,7 @@ export interface AppAtRiskMembersData {
   type: typeof DrawerType.AppAtRiskMembers;
   applicationName: string;
   members: DrawerMemberData[];
+  healthyMembers: DrawerMemberData[];
 }
 
 /**

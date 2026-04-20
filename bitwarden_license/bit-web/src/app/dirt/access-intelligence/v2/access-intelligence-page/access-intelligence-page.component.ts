@@ -290,10 +290,14 @@ export class AccessIntelligencePageComponent implements OnInit, OnDestroy {
     }
 
     const members = app.getAtRiskMembers(report.memberRegistry);
+    const healthyMembers = app
+      .getAllMembers(report.memberRegistry)
+      .filter((m) => !app.isMemberAtRisk(m.id));
     return {
       type: DrawerType.AppAtRiskMembers,
       applicationName: app.applicationName,
       members: this.mapMembersToDrawerData(members, report, app),
+      healthyMembers: this.mapMembersToDrawerData(healthyMembers, report, app),
     };
   }
 

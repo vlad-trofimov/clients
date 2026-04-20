@@ -312,6 +312,8 @@ describe("AccessIntelligencePageComponent", () => {
       expect((content as AppAtRiskMembersData).applicationName).toBe("github.com");
       expect((content as AppAtRiskMembersData).members).toHaveLength(1);
       expect((content as AppAtRiskMembersData).members[0].email).toBe("alice@example.com");
+      expect((content as AppAtRiskMembersData).healthyMembers).toHaveLength(1);
+      expect((content as AppAtRiskMembersData).healthyMembers[0].email).toBe("bob@example.com");
     });
 
     it("should return null for AppAtRiskMembers when app not found", () => {

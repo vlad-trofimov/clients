@@ -3,13 +3,18 @@ import { Component, ChangeDetectionStrategy, inject } from "@angular/core";
 import { DrawerType } from "@bitwarden/bit-common/dirt/access-intelligence/services";
 import { FileDownloadService } from "@bitwarden/common/platform/abstractions/file-download/file-download.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
-import { DIALOG_DATA, TooltipDirective } from "@bitwarden/components";
+import {
+  DIALOG_DATA,
+  DisclosureComponent,
+  DisclosureTriggerForDirective,
+  TooltipDirective,
+} from "@bitwarden/components";
 import { LogService } from "@bitwarden/logging";
 import { ExportHelper } from "@bitwarden/vault-export-core";
 import { exportToCSV } from "@bitwarden/web-vault/app/dirt/reports/report-utils";
 import { SharedModule } from "@bitwarden/web-vault/app/shared";
 
-import { getMemberSubcategoryBadges } from "../../../../shared/subcategory-badge.utils";
+import { getMemberSubcategoryBadges } from "../../../shared/subcategory-badge.utils";
 import { DrawerContentData, DrawerMemberData } from "../../models/drawer-content-data.types";
 
 /**
@@ -21,7 +26,7 @@ import { DrawerContentData, DrawerMemberData } from "../../models/drawer-content
  */
 @Component({
   selector: "dirt-access-intelligence-drawer-v2",
-  imports: [SharedModule, TooltipDirective],
+  imports: [SharedModule, TooltipDirective, DisclosureComponent, DisclosureTriggerForDirective],
   templateUrl: "./access-intelligence-drawer-v2.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

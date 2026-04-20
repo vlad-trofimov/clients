@@ -75,6 +75,25 @@
           </div>
         }
       </div>
+      @if (data.healthyMembers?.length > 0) {
+        <div class="tw-mt-4 tw-border-t tw-border-secondary-300 tw-pt-3">
+          <button
+            type="button"
+            class="tw-flex tw-w-full tw-items-center tw-justify-between tw-text-sm tw-font-semibold tw-text-main"
+            [bitDisclosureTriggerFor]="healthyMembersDisclosure"
+          >
+            <span>{{ "healthyMembersWithCount" | i18n: data.healthyMembers.length }}</span>
+            <i class="bwi bwi-angle-down" aria-hidden="true"></i>
+          </button>
+          <bit-disclosure #healthyMembersDisclosure>
+            <div class="tw-mt-1">
+              @for (member of data.healthyMembers; track member.email) {
+                <div class="tw-py-1 tw-text-sm">{{ member.email }}</div>
+              }
+            </div>
+          </bit-disclosure>
+        </div>
+      }
     </ng-container>
   </bit-dialog>
 }

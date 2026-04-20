@@ -157,10 +157,11 @@ export class RiskInsightsDataService {
         return;
       }
 
+      const appData = reportResults.reportData.find((app) => app.applicationName === invokerId);
+      const atRiskEmails = new Set((appData?.atRiskMemberDetails ?? []).map((m) => m.email));
       const atRiskMembers = {
-        members:
-          reportResults.reportData.find((app) => app.applicationName === invokerId)
-            ?.atRiskMemberDetails ?? [],
+        members: appData?.atRiskMemberDetails ?? [],
+        healthyMembers: (appData?.memberDetails ?? []).filter((m) => !atRiskEmails.has(m.email)),
         applicationName: invokerId,
       };
       this.drawerDetailsSubject.next({

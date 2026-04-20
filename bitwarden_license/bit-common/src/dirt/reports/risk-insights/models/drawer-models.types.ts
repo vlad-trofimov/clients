@@ -22,6 +22,7 @@ export type DrawerDetails = {
 
 export type AppAtRiskMembersDialogParams = {
   members: MemberDetails[];
+  healthyMembers: MemberDetails[];
   applicationName: string;
 };
 

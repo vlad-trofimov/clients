@@ -5368,6 +5368,16 @@
     "message": "Exposed",
     "description": "Label for an exposed password subcategory badge in Access Intelligence"
   },
+  "healthyMembersWithCount": {
+    "message": "Healthy members ($COUNT$)",
+    "description": "Collapsible section label in Access Intelligence drawer showing members with no at-risk passwords",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
   "veryWeak": {
     "message": "Very Weak",
     "description": "ex. A very weak password. Scale: Very Weak -> Weak -> Good -> Strong"
